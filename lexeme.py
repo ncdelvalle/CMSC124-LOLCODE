@@ -39,3 +39,16 @@ def isType(tok):
         return True
     else:
         return False
+
+def isIdentifier(tok):
+    regex = r"^[A-Za-z][A-Za-z0-9_]*"
+    return re.search(regex, tok)
+
+tokens = []
+with open("file.lol", "r") as f:
+	for line in f:
+        temp = []
+		codeTok = line.strip().split(" ")
+		for x in codeTok:
+            temp.append(x)
+        tokens.append(temp)
