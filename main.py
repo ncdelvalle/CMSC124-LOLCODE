@@ -61,6 +61,7 @@ def tokenized(code):
     ]
 
     for tok in tokens:
+        print(tok)
         i = 0
         while i < len(tok):
             if i + 3 < len(tok):
@@ -138,7 +139,7 @@ def tokenized(code):
                     tok[i] = "AN YR"
                     continue
             i += 1
-
+    print(tokens)
     return tokens
 
     # Sorter functions
@@ -164,10 +165,15 @@ def classify_token(tok):
 
     if tok == "I HAS A":
         return (tok, "Variable Declaration")
+    #FIX PROPER STRING DELIMTER DETECTION :)    
+    elif tok == '"': 
+        return(tok, "String Delimiter")
     elif tok in variable_assignment:
         return (tok, "Variable Assignment")
     elif tok == "GIMME":
         return (tok, "Input Keyword")
+    elif tok == "VISIBLE": 
+        return(tok, "Output Keyword")
     elif tok in switch_case_keyword:
         return (tok, "Switch Case Keyword")
     elif tok in condition_keyword:
@@ -200,6 +206,22 @@ def classify_token(tok):
         return(tok, "Arithmetic Operator")
     elif tok in bool_operator: 
         return(tok, "Boolean Operator")
+    elif isTroof(tok): 
+        return(tok, "Literal")
+    elif isNumbr(tok): 
+        return(tok, "Literal")
+    elif isNumbar(tok): 
+        return(tok, "Literal")
+    elif isYarn(tok): 
+        return(tok, "Literal")
+    elif isType(tok): 
+        return(tok, "Literal")
+    elif isIdentifier(tok): 
+        return(tok, "Identifier")
+    #edit something so we can differentiate Identifier
+    else: 
+        return(tok, "Unknown")
+
 
     
 def isTroof(tok):
@@ -381,11 +403,16 @@ def open_file(event):
     textEditor.insert(tk.END, data)
 
 def execute_code():
+    sampleToks.clear()
     codeText = textEditor.get("1.0", tk.END).strip()
     placeholders(codeText)
     tokeners = tokenized(codeText)
     for token in tokeners: 
-        sampleToks.append(classify_token(token[0]))
+        if len(token) == 1: 
+            sampleToks.append(classify_token(token[0]))
+        else: 
+            for i in range(len(token)): 
+                sampleToks.append(classify_token(token[i]))
     
     # Clear old results
     for child in lexemeTable.get_children():
@@ -393,14 +420,14 @@ def execute_code():
     for child in symbolTable.get_children():
         symbolTable.delete(child)
     console.delete("1.0", tk.END)
-
+    
     # Display results
     for lex, cls in sampleToks:
         lexemeTable.insert("", "end", values=(lex, cls))
     for ident, val in sampleSyms:
         symbolTable.insert("", "end", values=(ident, val))
     console.insert(tk.END, consoleOut)
-    sampleToks.clear()
+
 
 def create_gui(code):
     global root, dir, fileExp, textEditor, lexemeTable, symbolTable, console
