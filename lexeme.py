@@ -44,6 +44,51 @@ def isIdentifier(tok):
     regex = r"^[A-Za-z][A-Za-z0-9_]*"
     return re.search(regex, tok)
 
+def isCodeDelimiter(tok): 
+    delimiter = ['HAI', "KTHXBYE"]
+    if tok in delimiter: 
+        return (tok, "Code Delimiter")
+
+def isVariableDelimiter(tok): 
+    delimiter = ['WAZZUP', 'BUHBYE']
+    if tok in delimiter: 
+        return (tok, "Variable Delimiter")
+
+def isCommentDelimiter(tok): 
+    delimiter = ['BTW', 'OBTW', 'TLDR']
+    if tok in delimiter: 
+        return (tok, "Comment Delimiter")
+    
+def isStatementDelimiter(tok): 
+    delimiter = ['O RLY?', 'OIC', 'WTF?']
+    if tok in delimiter: 
+        return (tok, "Statement Delimiter")
+    
+def isLoopDelimiter(tok): 
+    delimiter = ['IM IN YR', 'IM OUTTA YR']
+    if tok in delimiter: 
+        return (tok, "Loop Delimiter")
+
+def isFunctionDelimiter(tok): 
+    delimiter = ['HOW IZ I', 'IF U SAY SO']
+    if tok in delimiter: 
+        return (tok, "Function Delimiter")
+
+def isComparisonOperator(tok): 
+    operator = ['BOTH SAEM', 'DIFFRINT']
+    if tok in operator: 
+        return(tok, "Comparison Operator")
+    
+def isArithmeticOperator(tok): 
+    operator = ['SUM OF', 'DIFF OF', 'PRODUKT OF', 'QUOSHUNT OF', 'MOD OF', 'BIGGR OF', 'SMALLR OF', 'UPPN', 'NERFIN']
+    if tok in operator: 
+        return(tok, "Arithmetic Operator")
+    
+def isBooleanOperator(tok): 
+    operator = ['BOTH OF', 'EITHER OF', 'WON OF', 'NOT', 'ANY OF', 'ALL OF', 'SMOOSH']
+    if tok in operator: 
+        return(tok, "Boolean Operator")
+
 def tokenized():
     tokens = []
 
