@@ -31,9 +31,9 @@ sampleSyms = [
 consoleOut = "noot noot 12\n"
 
 # For testing
-def placeholders():
+def placeholders(code):
     textEditor.delete("1.0", tk.END)
-    textEditor.insert(tk.END, sampleCode)
+    textEditor.insert(tk.END, code)
 
 # Global Vars
 root = None
@@ -49,14 +49,12 @@ console = None
 
 # Lexeme Functions
     # Tokenizer
-def tokenized():
+def tokenized(code):
+    unfinished = re.split('\n', code)
     tokens = []
-
-    # Read file into list[list[str]]
-    with open("file.lol", "r") as f:
-        for line in f:
-            tokens.append(line.strip().split(" "))
-
+  
+    for line in unfinished:
+        tokens.append(line.split(" "))
     keys = [
         "SUM", "DIFF", "PRODUKT", "QUOSHUNT", "MOD", "BIGGR",
         "SMALLR", "BOTH", "EITHER", "WON", "ANY", "ALL"
@@ -384,9 +382,11 @@ def open_file(event):
 
 def execute_code():
     codeText = textEditor.get("1.0", tk.END).strip()
+    placeholders(codeText)
+    tokeners = tokenized(codeText)
+    for token in tokeners: 
+        sampleToks.append(classify_token(token[0]))
     
-    placeholders()
-
     # Clear old results
     for child in lexemeTable.get_children():
         lexemeTable.delete(child)
@@ -400,8 +400,9 @@ def execute_code():
     for ident, val in sampleSyms:
         symbolTable.insert("", "end", values=(ident, val))
     console.insert(tk.END, consoleOut)
+    sampleToks.clear()
 
-def create_gui():
+def create_gui(code):
     global root, dir, fileExp, textEditor, lexemeTable, symbolTable, console
 
     root = tk.Tk()
@@ -485,12 +486,12 @@ def create_gui():
     console = ScrolledText(consolePane, height=8, wrap="word", state="normal")
     console.pack(fill="both", expand=True, padx=6, pady=(0, 6))
 
-    placeholders()
+    placeholders(code)
+   
     root.mainloop()
 
-tokenized = tokenized()
-for token in tokenized: 
+tokenized_tokens = tokenized(sampleCode)
+for token in tokenized_tokens: 
     sampleToks.append(classify_token(token[0]))
 
-
-create_gui()
+create_gui(sampleCode)
