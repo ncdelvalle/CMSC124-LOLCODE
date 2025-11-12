@@ -5,24 +5,22 @@ from tkinter import ttk, filedialog, messagebox
 from tkinter.scrolledtext import ScrolledText
 
 # Placeholders
-sampleCode = '''HAI
-I HAS A var ITZ 12
-VISIBLE "noot noot" var
-KTHXBYE
-'''
+with open('file.lol', 'r') as file:
+    sampleCode = file.read()
+
 
 sampleToks = [
-    ("HAI", "Code Delimiter"),
-    ("I HAS A", "Variable Declaration"),
-    ("var", "Variable Identifier"),
-    ("ITZ", "Variable Assignment"),
-    ("12", "Literal"),
-    ("VISIBLE", "Output Keyword"),
-    ("\"", "String Delimiter"),
-    ("noot noot", "Literal"),
-    ("\"", "String Delimiter"),
-    ("var", "Variable Identifier"),
-    ("KTHXBYE", "Code Delimiter"),
+    # ("HAI", "Code Delimiter"),
+    # ("I HAS A", "Variable Declaration"),
+    # ("var", "Variable Identifier"),
+    # ("ITZ", "Variable Assignment"),
+    # ("12", "Literal"),
+    # ("VISIBLE", "Output Keyword"),
+    # ("\"", "String Delimiter"),
+    # ("noot noot", "Literal"),
+    # ("\"", "String Delimiter"),
+    # ("var", "Variable Identifier"),
+    # ("KTHXBYE", "Code Delimiter"),
 ]
 
 sampleSyms = [
@@ -146,7 +144,66 @@ def tokenized():
     return tokens
 
     # Sorter functions
+def classify_token(tok): 
+    variable_assignment = ["ITZ", "R"]
+    switch_case_keyword = ["OMG", "OMGWTF"]
+    condition_keyword = ["YA RLY", "MEBBE", "NO WAI"]
+    loop_keyword = ["TIL", "WILE"]
+    return_keyword = ["GTFO", "FOUND YR"]
+    parameter_keyword = ["YR", "AN YR"]
+    typecast_keyword = ["MAEK", "IS NOW A"]
+    function_keyword = ["I IZ", "MKAY"]
+    code_delimiter = ['HAI', "KTHXBYE"]
+    var_delimiter = ['WAZZUP', 'BUHBYE']
+    comment_delimiter = ['BTW', 'OBTW', 'TLDR']
+    state_delimiter = ['O RLY?', 'OIC', 'WTF?']
+    loop_delimiter = ['IM IN YR', 'IM OUTTA YR']
+    func_delimiter = ['HOW IZ I', 'IF U SAY SO']
+    comp_operator = ['BOTH SAEM', 'DIFFRINT']
+    arith_operator = ['SUM OF', 'DIFF OF', 'PRODUKT OF', 'QUOSHUNT OF', 'MOD OF', 'BIGGR OF', 'SMALLR OF', 'UPPN', 'NERFIN']
+    bool_operator = ['BOTH OF', 'EITHER OF', 'WON OF', 'NOT', 'ANY OF', 'ALL OF', 'SMOOSH']
 
+
+    if tok == "I HAS A":
+        return (tok, "Variable Declaration")
+    elif tok in variable_assignment:
+        return (tok, "Variable Assignment")
+    elif tok == "GIMME":
+        return (tok, "Input Keyword")
+    elif tok in switch_case_keyword:
+        return (tok, "Switch Case Keyword")
+    elif tok in condition_keyword:
+        return (tok, "Condition Keyword")
+    elif tok in loop_keyword:
+        return (tok, "Loop Keyword")
+    elif tok in return_keyword:
+        return (tok, "Return Keyword")
+    elif tok in parameter_keyword:
+        return (tok, "Parameter_Keyword")
+    elif tok in typecast_keyword:
+        return (tok, "Typecast Keyword")
+    elif tok in function_keyword:
+        return (tok, "Function Keyword")
+    elif tok in code_delimiter: 
+        return (tok, "Code Delimiter")
+    elif  tok in var_delimiter: 
+        return (tok, "Variable Delimiter")
+    elif tok in comment_delimiter: 
+        return (tok, "Comment Delimiter")
+    elif tok in state_delimiter: 
+        return (tok, "Statement Delimiter")
+    elif tok in loop_delimiter: 
+        return (tok, "Loop Delimiter")
+    elif tok in func_delimiter: 
+        return (tok, "Function Delimiter")
+    elif tok in comp_operator: 
+        return(tok, "Comparison Operator")
+    elif tok in arith_operator: 
+        return(tok, "Arithmetic Operator")
+    elif tok in bool_operator: 
+        return(tok, "Boolean Operator")
+
+    
 def isTroof(tok):
     if tok == "WIN" or tok == "FAIL":
         return True
@@ -326,7 +383,7 @@ def open_file(event):
     textEditor.insert(tk.END, data)
 
 def execute_code():
-    # codeText = textEditor.get("1.0", tk.END).strip()
+    codeText = textEditor.get("1.0", tk.END).strip()
     
     placeholders()
 
@@ -430,5 +487,10 @@ def create_gui():
 
     placeholders()
     root.mainloop()
+
+tokenized = tokenized()
+for token in tokenized: 
+    sampleToks.append(classify_token(token[0]))
+
 
 create_gui()
