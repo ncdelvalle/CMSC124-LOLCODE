@@ -44,6 +44,67 @@ def isIdentifier(tok):
     regex = r"^[A-Za-z][A-Za-z0-9_]*"
     return re.search(regex, tok)
 
+def isVarDec(tok):
+    if tok == "I HAS A":
+        return ("I HAS A", "Variable Declaration")
+
+def isVarAss(tok):
+    variable_assignment = ["ITZ", "R"]
+    if tok in variable_assignment:
+        return (tok, "Variable Assignment")
+
+
+def isInput(tok):
+    if tok == "GIMME":
+        return ("GIMME", "Input Keyword")
+   
+def isOutput(tok):
+    if tok == "VISIBLE":
+        return ("VISIBLE", "Output Keyword")
+
+
+def isSwitch(tok):
+    switch_case_keyword = ["OMG", "OMGWTF"]
+    if tok in switch_case_keyword:
+        return (tok, "Switch Case Keyword")
+
+
+def isCondition(tok):
+    condition_keyword = ["YA RLY", "MEBBE", "NO WAI"]
+    if tok in condition_keyword:
+        return (tok, "Condition Keyword")
+
+
+def isLoop(tok):
+    loop_keyword = ["TIL", "WILE"]
+    if tok in loop_keyword:
+        return (tok, "Loop Keyword")
+
+
+def isReturn(tok):
+    return_keyword = ["GTFO", "FOUND YR"]
+    if tok in return_keyword:
+        return (tok, "Return Keyword")
+
+
+def isParameter(tok):
+    parameter_keyword = ["YR", "AN YR"]
+    if tok in parameter_keyword:
+        return (tok, "Parameter_Keyword")
+
+
+def isTypecast(tok):
+    typecast_keyword = ["MAEK", "IS NOW A"]
+    if tok in typecast_keyword:
+        return (tok, "Typecast Keyword")
+
+
+def isFunction(tok):
+    function_keyword = ["I IZ", "MKAY"]
+    if tok in function_keyword:
+        return (tok, "Function Keyword")
+
+
 def isCodeDelimiter(tok): 
     delimiter = ['HAI', "KTHXBYE"]
     if tok in delimiter: 
