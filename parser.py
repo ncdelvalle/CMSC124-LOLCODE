@@ -73,6 +73,16 @@ def next_tok():
     else:
         current_token = None
 
+def last_tok():
+    global current_index, current_token, tokens, current_line
+    current_index -= 1
+    if current_index > 0:
+        current_token = tokens[current_index]
+        if current_token is not None and current_token[1] == "linebreak": # for line tracing
+            current_line -= 1
+    else:
+        current_token = None
+
 # Skips comments and whitespaces
 def skip_empty_lines():
     global current_token
@@ -177,7 +187,6 @@ def program():
 
     # Expect start code delimiter HAI
     if current_token is None or current_token[1] != "start_code_delimiter":
-        print(current_token)
         error("Start code delimiter (HAI) not found", current_line)
 
     nodes.append(("START", current_token))
@@ -271,7 +280,6 @@ def var_declaration_list():
 
         # Expect a variable declaration
         if current_token is None or current_token[1] != "variable_declaration":
-            print(current_token)
             error("Expected variable declaration start 'I HAS A'", current_line)
 
         node = var_declaration()
@@ -372,9 +380,9 @@ def statement():
     if ttype == "input_keyword":
         return input_stmt()
 
-    # 5. switch statement
-    if ttype == "switch_keyword":
-        return switch_stmt()
+    # 5. break statement
+    if ttype == "break_keyword":
+        return break_stmt()
 
     # 6. loop statement
     if ttype == "initialize_loop_keyword":
@@ -384,15 +392,12 @@ def statement():
     if ttype == "define_function_keyword":
         return function_def()
 
-    # 8. return statement
-    if ttype == "return_keyword":
-        return return_stmt()
-
     # 9. expressions anad if statements
     if ttype in expr_toks:
         return expr_stmt()
 
     # No valid statement start
+    print(tokens[current_index - 1])
     error("Invalid statement start: " + str(current_token))
 
 # variable declaration parser
@@ -656,37 +661,12 @@ def switch_stmt(switch_value):
 
     # Expect OIC
     if current_token is None or current_token[1] != "end_of_if_block_keyword":
-        print(current_token)
         error("Expected 'OIC' to close WTF? block", current_line)
 
     next_tok()
     skip_empty_lines()
 
     return chosen_block
-
-# Switch helper
-def statement_list_until_switch_branch():
-    global current_token
-    stmts = []
-
-    while current_token is not None:
-        t = current_token[1]
-
-        # Stop on next case, default, end, or GTFO
-        if t in ("switch_case_keyword", "switch_default_keyword", "end_of_if_block_keyword", "break_keyword"):
-            break
-
-        if not is_statement_start(current_token):
-            break
-
-        stmts.append(statement())
-
-        # skip blank lines
-        while current_token is not None and current_token[1] in ("linebreak", "empty_line"):
-            next_tok()
-            skip_empty_lines()
-
-    return stmts
 
 # If statement parser
 def if_stmt(cond_value):
@@ -1085,152 +1065,219 @@ def parse_full_typecast():
 
 # ======= WORK IN PROGRESS ==========
 def loop_stmt():
-    return True
+    global current_token
+    stmts = []
+    gtfo_triggered = False
+
+    # Expect IM IN YR
+    if current_token is None or current_token[1] != "initialize_loop_keyword":
+        error("Expected 'IM IN YR' for loop statement", current_line)
+    next_tok()
+
+    # Expect <identifier>
+    if current_token is None or current_token[1] != "variable_identifier":
+        print(current_token)
+        error("Expected identifier after 'IM IN YR'", current_line)
+    next_tok()
+
+    # Expect UPPIN/NERFIN
+    if current_token is None or current_token[1] not in ("increment_keyword", "decrement_keyword"):
+        error("Expected 'UPPIN' or 'NERFIN' after loop identifier", current_line)
+    
+    if current_token[1] == "increment_keyword":
+        asc = True
+    else:
+        asc = False
+    next_tok()
+
+    # Expect <identifier>
+    if current_token is None or current_token[1] != "separator_keyword":
+        print(current_token)
+        error("Expected 'YR' after 'UPPIN'/NERFIN", current_line)
+    next_tok()
+
+    # Expect <identifier>
+    if current_token is None or current_token[1] != "variable_identifier":
+        print(current_token)
+        error("Expected identifier after 'YR", current_line)
+
+    varname = current_token[0]
+    next_tok()
+
+    # Expect WILE/TIL
+    if current_token is None or current_token[1] not in ("while_keyword", "until_keyword"):
+        error("Expected 'WILE' or 'TIL' after loop identifier", current_line)
+
+    
+    if current_token[1] == "while_keyword":
+        wile = True
+    else:
+        wile = False
+    next_tok()
+
+    if wile:
+        while True:
+            cond_val,_ = parse_expression()
+
+            if cond_val != "WIN":
+                while current_token is not None and current_token[1] != "break_loop_keyword":
+                    next_tok()
+                break
+
+            next_tok()
+            skip_empty_lines()
+
+            while current_token[1] != "break_loop_keyword":
+                result = statement()
+                if result[0] == "BREAK":
+                    gtfo_triggered = True
+                    break
+                stmts.append(result)
+                skip_empty_lines()
+
+            if gtfo_triggered:
+                break 
+
+            if asc:
+                symbol_table[varname]["value"] += 1
+            else:
+                symbol_table[varname]["value"] -= 1
+
+            while current_token[1] not in ("while_keyword", "until_keyword"):
+                last_tok()
+            next_tok()
+    else:
+        while True:
+            cond_val, _ = parse_expression()
+            next_tok()
+            skip_empty_lines()
+
+            if cond_val != "FAIL":
+                while current_token is not None and current_token[1] != "break_loop_keyword":
+                    next_tok()
+                break
+            
+            while current_token is not None and current_token[1] != "break_loop_keyword":
+                result = statement()
+                skip_empty_lines
+                if result[0] == "BREAK":
+                    gtfo_triggered = True
+                    break
+                stmts.append(result)
+                skip_empty_lines()
+
+            if gtfo_triggered:
+                break
+            
+            if asc:
+                symbol_table[varname]["value"] += 1
+            else:
+                symbol_table[varname]["value"] -= 1
+
+            while current_token is not None and current_token[1] not in ("while_keyword", "until_keyword"):
+                last_tok()
+            next_tok()
+    
+    # Expect IM OUTTA YR
+    if current_token is None or current_token[1] != "break_loop_keyword":
+        error("Expected 'IM OUTTA YR' to close loop block", current_line)
+    next_tok()
+
+    # Expect <identifier>
+    if current_token is None or current_token[1] != "variable_identifier":
+        error("Expected loop identifier to close loop block", current_line)
+    next_tok()
+    skip_empty_lines()
+
+    return stmts
 
 def function_def():
     return True
 
-def return_stmt():
-    return True
+def break_stmt():
+    next_tok()
+    skip_empty_lines()
+    return 'BREAK', 'GTFO'
 
 
 # Test
 tokens = [
-("HAI", "start_code_delimiter"),
-("\n", "linebreak"),
-("WAZZUP", "var_declaration_start"),
-("\n", "linebreak"),
-("I HAS A", "variable_declaration"),
-("choice", "variable_identifier"),
-("\n", "linebreak"),
-("I HAS A", "variable_declaration"),
-("input", "variable_identifier"),
-("\n", "linebreak"),
-("BUHBYE", "var_declaration_end"),
-("\n", "linebreak"),
-("    ", "empty_line"),
-("    ", "empty_line"),
-("VISIBLE", "print_keyword"),
-("\"", "string_delimiter"),
-("1. Compute age", "string_literal"),
-("\"", "string_delimiter"),
-("\n", "linebreak"),
-("VISIBLE", "print_keyword"),
-("\"", "string_delimiter"),
-("2. Compute tip", "string_literal"),
-("\"", "string_delimiter"),
-("\n", "linebreak"),
-("VISIBLE", "print_keyword"),
-("\"", "string_delimiter"),
-("3. Compute square area", "string_literal"),
-("\"", "string_delimiter"),
-("\n", "linebreak"),
-("VISIBLE", "print_keyword"),
-("\"", "string_delimiter"),
-("0. Exit", "string_literal"),
-("\"", "string_delimiter"),
-("\n", "linebreak"),
-("", "empty_line"),
-("VISIBLE", "print_keyword"),
-("\"", "string_delimiter"),
-("Choice: ", "string_literal"),
-("\"", "string_delimiter"),
-("\n", "linebreak"),
-("GIMMEH", "input_keyword"),
-("choice", "variable_identifier"),
-("\n", "linebreak"),
-("", "empty_line"),
-("choice", "variable_identifier"),
-("\n", "linebreak"),
-("WTF?", "switch_keyword"),
-("\n", "linebreak"),
-("OMG", "switch_case_keyword"),
-("1", "numbr_literal"),
-("\n", "linebreak"),
-("VISIBLE", "print_keyword"),
-("\"", "string_delimiter"),
-("Enter birth year: ", "string_literal"),
-("\"", "string_delimiter"),
-("\n", "linebreak"),
-("GIMMEH", "input_keyword"),
-("input", "variable_identifier"),
-("\n", "linebreak"),
-("VISIBLE", "print_keyword"),
-("DIFF OF", "subtract_keyword"),
-("2022", "numbr_literal"),
-("AN", "operator_delimiter"),
-("input", "variable_identifier"),
-("\n", "linebreak"),
-("GTFO", "break_keyword"),
-("\n", "linebreak"),
-("OMG", "switch_case_keyword"),
-("2", "numbr_literal"),
-("\n", "linebreak"),
-("VISIBLE", "print_keyword"),
-("\"", "string_delimiter"),
-("Enter bill cost: ", "string_literal"),
-("\"", "string_delimiter"),
-("\n", "linebreak"),
-("GIMMEH", "input_keyword"),
-("input", "variable_identifier"),
-("\n", "linebreak"),
-("VISIBLE", "print_keyword"),
-("\"", "string_delimiter"),
-("Tip: ", "string_literal"),
-("\"", "string_delimiter"),
-("+", "print_concatenation_keyword"),
-("PRODUCKT", "variable_identifier"),
-("OF", "variable_identifier"),
-("input", "variable_identifier"),
-("AN", "operator_delimiter"),
-("0.1", "numbar_literal"),
-("\n", "linebreak"),
-("GTFO", "break_keyword"),
-("\n", "linebreak"),
-("OMG", "switch_case_keyword"),
-("3", "numbr_literal"),
-("\n", "linebreak"),
-("VISIBLE", "print_keyword"),
-("\"", "string_delimiter"),
-("Enter width: ", "string_literal"),
-("\"", "string_delimiter"),
-("\n", "linebreak"),
-("GIMMEH", "input_keyword"),
-("input", "variable_identifier"),
-("\n", "linebreak"),
-("VISIBLE", "print_keyword"),
-("\"", "string_delimiter"),
-("Square Area: ", "string_literal"),
-("\"", "string_delimiter"),
-("+", "print_concatenation_keyword"),
-("PRODUKT OF", "multiply_keyword"),
-("input", "variable_identifier"),
-("AN", "operator_delimiter"),
-("input", "variable_identifier"),
-("\n", "linebreak"),
-("GTFO", "break_keyword"),
-("\n", "linebreak"),
-("OMG", "switch_case_keyword"),
-("0", "numbr_literal"),
-("\n", "linebreak"),
-("VISIBLE", "print_keyword"),
-("\"", "string_delimiter"),
-("Goodbye", "string_literal"),
-("\"", "string_delimiter"),
-("\n", "linebreak"),
-("OMGWTF", "switch_default_keyword"),
-("\n", "linebreak"),
-("VISIBLE", "print_keyword"),
-("\"", "string_delimiter"),
-("Invalid Input!", "string_literal"),
-("\"", "string_delimiter"),
-("\n", "linebreak"),
-("OIC", "end_of_if_block_keyword"),
-("\n", "linebreak"),
-("", "empty_line"),
-("KTHXBYE", "end_code_delimiter"),
-("\n", "linebreak"),
-("", "empty_line")
+    ("HAI", "start_code_delimiter"),
+    ("\n", "linebreak"),
+    ("WAZZUP", "var_declaration_start"),
+    ("\n", "linebreak"),
+    ("I HAS A", "variable_declaration"),
+    ("num1", "variable_identifier"),
+    ("\n", "linebreak"),
+    ("I HAS A", "variable_declaration"),
+    ("num2", "variable_identifier"),
+    ("\n", "linebreak"),
+    ("BUHBYE", "var_declaration_end"),
+    ("\n", "linebreak"),
+    ("    ", "empty_line"),
+    ("VISIBLE", "print_keyword"),
+    ("\"", "string_delimiter"),
+    ("Gimmeh a number: ", "string_literal"),
+    ("\"", "string_delimiter"),
+    ("\n", "linebreak"),
+    ("GIMMEH", "input_keyword"),
+    ("num1", "variable_identifier"),
+    ("\n", "linebreak"),
+    ("", "empty_line"),
+    ("num2", "variable_identifier"),
+    ('R', "update_var_value"),
+    ("0", "numbr_literal"),
+    ("\n", "linebreak"),
+    ("", "empty_line"),
+    ('IM IN YR', "initialize_loop_keyword"),
+    ("asc", "variable_identifier"),
+    ("UPPIN", "increment_keyword"),
+    ('YR', "separator_keyword"),
+    ("num2", "variable_identifier"),
+    ("WILE", "while_keyword"),
+    ("BOTH SAEM", "equal_keyword"),
+    ("num2", "variable_identifier"),
+    ("AN", "operator_delimiter"),
+    ("SMALLR OF", "min_keyword"),
+    ("num2", "variable_identifier"),
+    ("AN", "operator_delimiter"),
+    ("num1", "variable_identifier"),
+    ("\n", "linebreak"),
+    ("VISIBLE", "print_keyword"),
+    ("num2", "variable_identifier"),
+    ("\n", "linebreak"),
+    ("IM OUTTA YR", "break_loop_keyword"),
+    ("asc", "variable_identifier"),
+    ("\n", "linebreak"),
+    ("", "empty_line"),
+    ("VISIBLE", "print_keyword"),
+    ("\"", "string_delimiter"),
+    ("***", "string_literal"),
+    ("\"", "string_delimiter"),
+    ("\n", "linebreak"),
+    ("", "empty_line"),
+    ("IM IN YR", "initialize_loop_keyword"),
+    ("desc", "variable_identifier"),
+    ("NERFIN", "decrement_keyword"),
+    ('YR', "separator_keyword"),
+    ("num2", "variable_identifier"),
+    ("TIL", "until_keyword"),
+    ("BOTH SAEM", "equal_keyword"),
+    ("num2", "variable_identifier"),
+    ("AN", "operator_delimiter"),
+    ("0", "numbr_literal"),
+    ("\n", "linebreak"),
+    ("VISIBLE", "print_keyword"),
+    ("num2", "variable_identifier"),
+    ("\n", "linebreak"),
+    ("IM OUTTA YR", "break_loop_keyword"),
+    ("desc", "variable_identifier"),
+    ("\n", "linebreak"),
+    ("", "empty_line"),
+    ("", "empty_line"),
+    ("KTHXBYE", "end_code_delimiter"),
+    ("\n", "linebreak"),
+    ("", "empty_line")
 ]
 
 # Run parser
