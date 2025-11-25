@@ -21,7 +21,7 @@ line = "some line"
 ('MOD OF', "modulo_keyword")
 ('BIGGR OF', "max_keyword")
 ('SMALLR OF', "min_keyword")
-('BOTH OF', "add_keyword")
+('BOTH OF', "and_keyword")
 ('EITHER OF', "or_keyword")
 ('WON OF', "xor_keyword")
 ('ANY OF', "multi_or_keyword")
