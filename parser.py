@@ -101,7 +101,7 @@ def peek_assignment():
 
     next_tok = tokens[current_index + 1]
 
-    if next_tok[1] == "update_variable_keyword":  # R
+    if next_tok[1] == "update_var_value":  # R
         return True
     
     return False
@@ -467,7 +467,7 @@ def assignment():
     next_tok()
 
     # Expect assignment operator 'R'
-    if current_token is None or current_token[1] != "update_variable_keyword":
+    if current_token is None or current_token[1] != "update_var_value":
         error("Expected 'R' in assignment", current_line)
     next_tok()
 
@@ -506,7 +506,7 @@ def print_stmt():
     # Concatenation loop (AN or other concat tokens)
     concat_tokens = {
         "print_concatenation_keyword",
-        "and_keyword",
+        "operator_delimiter",
         "concat",
         "CONCAT",
         "plus",
@@ -699,7 +699,7 @@ def if_stmt(cond_value):
     skip_empty_lines()
 
     # Expect 'YA RLY'
-    if current_token is None or current_token[1] not in ("if_then_keyword", "if_true_keyword"):
+    if current_token is None or current_token[1] != "if_true_keyword":
         error("Expected 'YA RLY' after 'O RLY?'", current_line)
     next_tok()
     skip_empty_lines()
@@ -812,7 +812,7 @@ def parse_expression():
     ttype = current_token[1]
 
     # AN token is just a separator
-    if ttype == "and_keyword":
+    if ttype == "operator_delimiter":
         return None, None
 
     # Literals
@@ -859,7 +859,7 @@ def parse_expression():
             results.append(True if value == "WIN" else False)
 
             # skip optional AN separator
-            if current_token is not None and current_token[1] == "and_keyword":
+            if current_token is not None and current_token[1] == "operator_delimiter":
                 next_tok()
 
         # consume MKAY
@@ -876,7 +876,7 @@ def parse_expression():
     # Typecasting and binary operations
     if ttype in arith_toks + bool_toks + comp_toks + [
         "concatenation_keyword", "type_convert_keyword", "typecast_keyword",
-        "and_keyword", "or_keyword", "xor_keyword"
+        "operator_delimiter", "or_keyword", "xor_keyword"
     ]:
         op = ttype
         next_tok()
@@ -923,7 +923,7 @@ def parse_expression():
             return None, None
 
         # Consume AN if present
-        if current_token is not None and current_token[1] == "and_keyword":
+        if current_token is not None and current_token[1] == "operator_delimiter":
             next_tok()
         right, _ = parse_expression()
         if right is None:
@@ -1158,7 +1158,7 @@ tokens = [
 ("VISIBLE", "print_keyword"),
 ("DIFF OF", "subtract_keyword"),
 ("2022", "numbr_literal"),
-("AN", "and_keyword"),
+("AN", "operator_delimiter"),
 ("input", "variable_identifier"),
 ("\n", "linebreak"),
 ("GTFO", "break_keyword"),
@@ -1182,7 +1182,7 @@ tokens = [
 ("PRODUCKT", "variable_identifier"),
 ("OF", "variable_identifier"),
 ("input", "variable_identifier"),
-("AN", "and_keyword"),
+("AN", "operator_delimiter"),
 ("0.1", "numbar_literal"),
 ("\n", "linebreak"),
 ("GTFO", "break_keyword"),
@@ -1205,7 +1205,7 @@ tokens = [
 ("+", "print_concatenation_keyword"),
 ("PRODUKT OF", "multiply_keyword"),
 ("input", "variable_identifier"),
-("AN", "and_keyword"),
+("AN", "operator_delimiter"),
 ("input", "variable_identifier"),
 ("\n", "linebreak"),
 ("GTFO", "break_keyword"),
