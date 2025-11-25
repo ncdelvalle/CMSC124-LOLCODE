@@ -165,7 +165,7 @@ def store_variable(name, value):
         symbol_table[name] = {"value": "NOOB", "type": "NOOB"}
     else:
         # set type based on python type
-        if isinstance(value, bool):
+        if value in ("WIN", "FAIL"):
             t = "TROOF"
         elif isinstance(value, int):
             t = "NUMBR"
@@ -174,7 +174,8 @@ def store_variable(name, value):
         elif isinstance(value, str):
             t = "YARN"
         else:
-            t = "UNKNOWN"
+            t = "NOOB"
+            value = "NOOB"
         symbol_table[name] = {"value": value, "type": t}
 
 """ PROGRAM SYNTAX """
@@ -489,6 +490,7 @@ def assignment():
 
     # Update variable value and type in symbol table
     store_variable(name, value)
+    store_variable("IT", value)
 
     # Return assignment node
     return ('ASSIGNMENT', name, value)
@@ -763,7 +765,9 @@ def statement_list_until_if_branch():
 def expr_stmt():
     global current_token
     # Parse the expression
-    cond_value,_ = parse_expression()
+    parse_expression()
+
+    cond_value = symbol_table["IT"].get("value", None)
 
     if cond_value is None:
         error("Expected expression for expression-statement", current_line)
@@ -806,6 +810,7 @@ def parse_expression():
             error(f"Variable '{name}' not declared", current_line)
         value = symbol_table[name]["value"]
         expr_type = symbol_table[name].get("type", None)
+        store_variable("IT", value)
         next_tok()
         return value, expr_type
 
@@ -816,6 +821,7 @@ def parse_expression():
         operand = True if operand == "WIN" else False
         value = not operand
         value = "WIN" if value else "FAIL"
+        store_variable("IT", value)
         return value, "TROOF"
 
     # Multi-operand logical operations
@@ -850,7 +856,9 @@ def parse_expression():
             result = all(results)
         else:
             result = any(results)
-
+        
+        temp = "WIN" if result else "FAIL"
+        store_variable("IT", temp)
         return "WIN" if result else "FAIL", "TROOF"
 
     # Typecasting and binary operations
@@ -872,11 +880,21 @@ def parse_expression():
             target_type = current_token[0]
             next_tok()
             try:
-                if target_type == "NUMBR": return int(float(left)), "NUMBR"
-                if target_type == "NUMBAR": return float(left), "NUMBAR"
-                if target_type == "TROOF": return (str(left).upper() in ["WIN", "TRUE", "1"]), "TROOF"
-                if target_type == "YARN": return str(left), "YARN"
-                if target_type == "NOOB": return None, "NOOB"
+                if target_type == "NUMBR":
+                    store_variable("IT", int(left))
+                    return int(left), "NUMBR"
+                if target_type == "NUMBAR": 
+                    store_variable("IT", float(left))
+                    return float(left), "NUMBAR"
+                if target_type == "TROOF":
+                    store_variable("IT", left)
+                    return left, "TROOF"
+                if target_type == "YARN": 
+                    store_variable("IT", str(left))
+                    return str(left), "YARN"
+                if target_type == "NOOB":
+                    store_variable("IT", None) 
+                    return None, "NOOB"
             except:
                 error(f"Cannot cast '{left}' to {target_type}", current_line)
 
@@ -889,17 +907,28 @@ def parse_expression():
             next_tok()
             left, _ = parse_expression()
             try:
-                if target_type == "NUMBR": return int(float(left)), "NUMBR"
-                if target_type == "NUMBAR": return float(left), "NUMBAR"
-                if target_type == "TROOF": return (str(left).upper() in ["WIN", "TRUE", "1"]), "TROOF"
-                if target_type == "YARN": return str(left), "YARN"
-                if target_type == "NOOB": return None, "NOOB"
+                if target_type == "NUMBR":
+                    store_variable("IT", int(left))
+                    return int(left), "NUMBR"
+                if target_type == "NUMBAR":
+                    store_variable("IT", float(left))
+                    return float(left), "NUMBAR"
+                if target_type == "TROOF": 
+                    store_variable("IT", left)
+                    return left, "TROOF"
+                if target_type == "YARN": 
+                    store_variable("IT", str(left))
+                    return str(left), "YARN"
+                if target_type == "NOOB": 
+                    store_variable("IT", None) 
+                    return None, "NOOB"
             except:
                 error(f"Cannot cast '{left}' to {target_type}", current_line)
 
         # Binary operations
         left, left_type = parse_expression()
         if left is None:
+            store_variable("IT", None) 
             return None, None
 
         # Consume AN if present
@@ -961,6 +990,7 @@ def parse_expression():
             left = "WIN" if left else "FAIL"
             left_type = "TROOF"
 
+        store_variable("IT", left) 
         return left, left_type
 
     error(f"Unknown expression start: {current_token}")
@@ -985,27 +1015,32 @@ def parse_literal():
         if current_token is None or current_token[1] != "string_delimiter":
             error("Expected closing quote for string literal", current_line)
         next_tok()  # consume closing "
+        store_variable("IT", value) 
         return value, "YARN"
 
     # Number literals
     elif ttype == "numbr_literal":
         value = int(current_token[0])
         next_tok()
+        store_variable("IT", value) 
         return value, "NUMBR"
     elif ttype == "numbar_literal":
         value = float(current_token[0])
         next_tok()
+        store_variable("IT", value) 
         return value, "NUMBAR"
 
     # Boolean literals
     elif ttype == "troof_literal":
         value = current_token[0]
         next_tok()
+        store_variable("IT", value) 
         return value, "TROOF"
     
     # NOOB literal
     elif ttype == "noob_literal":
         next_tok()
+        store_variable("IT", value) 
         return "NOOB", "NOOB"
 
     else:
@@ -1164,7 +1199,6 @@ def loop_stmt():
                     gtfo_triggered = True
                     break
                 stmts.append(result)
-                skip_empty_lines()
 
             if gtfo_triggered:
                 break
@@ -1202,82 +1236,141 @@ def break_stmt():
 
 # Test
 tokens = [
-    ("HAI", "start_code_delimiter"),
-    ("\n", "linebreak"),
-    ("WAZZUP", "var_declaration_start"),
-    ("\n", "linebreak"),
-    ("I HAS A", "variable_declaration"),
-    ("num1", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("I HAS A", "variable_declaration"),
-    ("num2", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("BUHBYE", "var_declaration_end"),
-    ("\n", "linebreak"),
-    ("    ", "empty_line"),
-    ("VISIBLE", "print_keyword"),
-    ("\"", "string_delimiter"),
-    ("Gimmeh a number: ", "string_literal"),
-    ("\"", "string_delimiter"),
-    ("\n", "linebreak"),
-    ("GIMMEH", "input_keyword"),
-    ("num1", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("", "empty_line"),
-    ("num2", "variable_identifier"),
-    ('R', "update_var_value"),
-    ("0", "numbr_literal"),
-    ("\n", "linebreak"),
-    ("", "empty_line"),
-    ('IM IN YR', "initialize_loop_keyword"),
-    ("asc", "variable_identifier"),
-    ("UPPIN", "increment_keyword"),
-    ('YR', "separator_keyword"),
-    ("num2", "variable_identifier"),
-    ("WILE", "while_keyword"),
-    ("BOTH SAEM", "equal_keyword"),
-    ("num2", "variable_identifier"),
-    ("AN", "operator_delimiter"),
-    ("SMALLR OF", "min_keyword"),
-    ("num2", "variable_identifier"),
-    ("AN", "operator_delimiter"),
-    ("num1", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("VISIBLE", "print_keyword"),
-    ("num2", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("IM OUTTA YR", "break_loop_keyword"),
-    ("asc", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("", "empty_line"),
-    ("VISIBLE", "print_keyword"),
-    ("\"", "string_delimiter"),
-    ("***", "string_literal"),
-    ("\"", "string_delimiter"),
-    ("\n", "linebreak"),
-    ("", "empty_line"),
-    ("IM IN YR", "initialize_loop_keyword"),
-    ("desc", "variable_identifier"),
-    ("NERFIN", "decrement_keyword"),
-    ('YR', "separator_keyword"),
-    ("num2", "variable_identifier"),
-    ("TIL", "until_keyword"),
-    ("BOTH SAEM", "equal_keyword"),
-    ("num2", "variable_identifier"),
-    ("AN", "operator_delimiter"),
-    ("0", "numbr_literal"),
-    ("\n", "linebreak"),
-    ("VISIBLE", "print_keyword"),
-    ("num2", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("IM OUTTA YR", "break_loop_keyword"),
-    ("desc", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("", "empty_line"),
-    ("", "empty_line"),
-    ("KTHXBYE", "end_code_delimiter"),
-    ("\n", "linebreak"),
-    ("", "empty_line")
+("HAI", "start_code_delimiter"),
+("\n", "linebreak"),
+("WAZZUP", "var_declaration_start"),
+("\n", "linebreak"),
+("I HAS A", "variable_declaration"),
+("choice", "variable_identifier"),
+("\n", "linebreak"),
+("I HAS A", "variable_declaration"),
+("input", "variable_identifier"),
+("\n", "linebreak"),
+("BUHBYE", "var_declaration_end"),
+("\n", "linebreak"),
+("    ", "empty_line"),
+("    ", "empty_line"),
+("VISIBLE", "print_keyword"),
+("\"", "string_delimiter"),
+("1. Compute age", "string_literal"),
+("\"", "string_delimiter"),
+("\n", "linebreak"),
+("VISIBLE", "print_keyword"),
+("\"", "string_delimiter"),
+("2. Compute tip", "string_literal"),
+("\"", "string_delimiter"),
+("\n", "linebreak"),
+("VISIBLE", "print_keyword"),
+("\"", "string_delimiter"),
+("3. Compute square area", "string_literal"),
+("\"", "string_delimiter"),
+("\n", "linebreak"),
+("VISIBLE", "print_keyword"),
+("\"", "string_delimiter"),
+("0. Exit", "string_literal"),
+("\"", "string_delimiter"),
+("\n", "linebreak"),
+("", "empty_line"),
+("VISIBLE", "print_keyword"),
+("\"", "string_delimiter"),
+("Choice: ", "string_literal"),
+("\"", "string_delimiter"),
+("\n", "linebreak"),
+("GIMMEH", "input_keyword"),
+("choice", "variable_identifier"),
+("\n", "linebreak"),
+("", "empty_line"),
+("choice", "variable_identifier"),
+("\n", "linebreak"),
+("WTF?", "switch_keyword"),
+("\n", "linebreak"),
+("OMG", "switch_case_keyword"),
+("1", "numbr_literal"),
+("\n", "linebreak"),
+("VISIBLE", "print_keyword"),
+("\"", "string_delimiter"),
+("Enter birth year: ", "string_literal"),
+("\"", "string_delimiter"),
+("\n", "linebreak"),
+("GIMMEH", "input_keyword"),
+("input", "variable_identifier"),
+("\n", "linebreak"),
+("VISIBLE", "print_keyword"),
+("DIFF OF", "subtract_keyword"),
+("2022", "numbr_literal"),
+("AN", "operator_delimiter"),
+("input", "variable_identifier"),
+("\n", "linebreak"),
+("GTFO", "break_keyword"),
+("\n", "linebreak"),
+("OMG", "switch_case_keyword"),
+("2", "numbr_literal"),
+("\n", "linebreak"),
+("VISIBLE", "print_keyword"),
+("\"", "string_delimiter"),
+("Enter bill cost: ", "string_literal"),
+("\"", "string_delimiter"),
+("\n", "linebreak"),
+("GIMMEH", "input_keyword"),
+("input", "variable_identifier"),
+("\n", "linebreak"),
+("VISIBLE", "print_keyword"),
+("\"", "string_delimiter"),
+("Tip: ", "string_literal"),
+("\"", "string_delimiter"),
+("+", "print_concatenation_keyword"),
+("PRODUCKT", "variable_identifier"),
+("OF", "variable_identifier"),
+("input", "variable_identifier"),
+("AN", "operator_delimiter"),
+("0.1", "numbar_literal"),
+("\n", "linebreak"),
+("GTFO", "break_keyword"),
+("\n", "linebreak"),
+("OMG", "switch_case_keyword"),
+("3", "numbr_literal"),
+("\n", "linebreak"),
+("VISIBLE", "print_keyword"),
+("\"", "string_delimiter"),
+("Enter width: ", "string_literal"),
+("\"", "string_delimiter"),
+("\n", "linebreak"),
+("GIMMEH", "input_keyword"),
+("input", "variable_identifier"),
+("\n", "linebreak"),
+("VISIBLE", "print_keyword"),
+("\"", "string_delimiter"),
+("Square Area: ", "string_literal"),
+("\"", "string_delimiter"),
+("+", "print_concatenation_keyword"),
+("PRODUKT OF", "multiply_keyword"),
+("input", "variable_identifier"),
+("AN", "operator_delimiter"),
+("input", "variable_identifier"),
+("\n", "linebreak"),
+("GTFO", "break_keyword"),
+("\n", "linebreak"),
+("OMG", "switch_case_keyword"),
+("0", "numbr_literal"),
+("\n", "linebreak"),
+("VISIBLE", "print_keyword"),
+("\"", "string_delimiter"),
+("Goodbye", "string_literal"),
+("\"", "string_delimiter"),
+("\n", "linebreak"),
+("OMGWTF", "switch_default_keyword"),
+("\n", "linebreak"),
+("VISIBLE", "print_keyword"),
+("\"", "string_delimiter"),
+("Invalid Input!", "string_literal"),
+("\"", "string_delimiter"),
+("\n", "linebreak"),
+("OIC", "end_of_if_block_keyword"),
+("\n", "linebreak"),
+("", "empty_line"),
+("KTHXBYE", "end_code_delimiter"),
+("\n", "linebreak"),
+("", "empty_line")
 ]
 
 # Run parser
