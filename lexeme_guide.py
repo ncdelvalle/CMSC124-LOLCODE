@@ -53,6 +53,8 @@ line = "some line"
 ('IF U SAY SO', "function_end_keyword")
 ('I IZ', "function_call_keyword")
 ('MKAY', "end_of_assignment_keyword")
+('GTFO', "break_keyword")
+('FOUND YR', "return_keyword")
 ('varname', "variable_identifier")
 ('17.0', "numbar_literal") # and other types
 ('\\n', "linebreak")
