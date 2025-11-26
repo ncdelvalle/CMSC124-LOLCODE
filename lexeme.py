@@ -77,18 +77,13 @@ import re
 
 def tokenized(array):
 
-    tokens = []
-
-    for item in array: 
-        tokens.append(item.split(" "))
-
     # code that has OF attached to it
     of_keys = [
         "SUM", "DIFF", "PRODUKT", "QUOSHUNT", "MOD", "BIGGR",
         "SMALLR", "BOTH", "EITHER", "WON", "ANY", "ALL"
     ]
 
-    for tok in tokens:
+    for tok in array:
         i = 0
         while i < len(tok):
             if i + 3 < len(tok):
@@ -150,7 +145,6 @@ def tokenized(array):
                     tok.pop(i+1)
                     tok[i] = "NO WAI"
                     continue
-
                 if tok[i] == "FOUND" and tok[i+1] == "YR":
                     tok.pop(i+1)
                     tok[i] = "FOUND YR"
@@ -166,7 +160,27 @@ def tokenized(array):
                     tok[i] = "AN YR"
                     continue
             i += 1
-    return tokens
+
+    for line in array: 
+        make_strings(line)
+    return array
+
+def make_strings(line):
+    has_quotes = 0
+    start_index = -1; 
+    end_index = -1
+    i = 0
+    for word in line: 
+        if(word == '"' and start_index == -1): 
+            has_quotes = 1
+            start_index = i + 1
+        elif(word == '"' and start_index != -1):
+            end_index = i 
+        i+=1
+ 
+    if(has_quotes == 1): 
+        line[start_index:end_index] = [' '.join(line[start_index:end_index])]
+   
 
 def classify_token(tok): 
     if tok == '\"':
@@ -234,9 +248,9 @@ def classify_token(tok):
         return (tok, "type_convert_keyword")
     elif tok == 'VISIBLE':
         return (tok, "print_keyword")
-    elif tok == 'GIMME':
+    elif tok == 'GIMMEH':
         return (tok, "input_keyword")
-    elif tok == 'O RLY':
+    elif tok == 'O RLY?':
         return (tok, "if_keyword")
     elif tok == 'YA RLY':
         return (tok, "if_true_keyword")
@@ -250,7 +264,7 @@ def classify_token(tok):
         return (tok, "switch_keyword")
     elif tok == 'OMG':
         return (tok, "switch_case_keyword")
-    elif tok == 'OMGWTF?':
+    elif tok == 'OMGWTF':
         return (tok, "switch_default_keyword")
     elif tok == 'IM IN YR':
         return (tok, "initialize_loop_keyword")
@@ -281,7 +295,7 @@ def classify_token(tok):
     elif tok == '17.0':
         # Placeholder for recognizing any number literal
         return (tok, "numbar_literal")
-    elif tok == '\\n':
+    elif tok == '\n':
         return (tok, "linebreak")
     elif tok == '+':
         return (tok, "print_concatenation_keyword")
@@ -294,7 +308,7 @@ array = []
 file = open('file.lol', "r")
 for line in file: 
     line = re.sub(r'\t', r'', line)
-    array.append(line)
+    array.append(line.split(" "))
 file.close()
 
 print(array)
@@ -302,35 +316,36 @@ print()
 
 final = []
 pattern = r'(")'
-pattern2 = r'\n'
-for string in array: 
-    if re.search('"', string): 
-        token = re.split(pattern, string)
-        final.extend(token)
-    elif re.search("^.+\n$", string): 
-        token = re.split(pattern2, string)
-        final.extend(token)
-    else: 
-        final.append(string)
+pattern2 = r'(\n)'
+for line in array: 
+    line_array = []
+    for word in line: 
+        if re.search('"', word): 
+            token = re.split(pattern, word)
+            line_array.extend(token)
+        elif re.search("^.+\n$", word): 
+            token = re.split(pattern2, word)
+            line_array.extend(token)
+        else: 
+            line_array.append(word)
+    line_array = list(filter(None, line_array))
+    final.append(line_array)
 
-# Source - https://stackoverflow.com/a
-# Posted by livibetter, modified by community. See post 'Timeline' for change history
-# Retrieved 2025-11-26, License - CC BY-SA 4.0
-
-final = list(filter(None, final))
 
 print(final)
 
-sample = tokenized(final)
 
-sample = list(filter(None, sample))
-print(sample)
+tokenized_toks = tokenized(final)
 
-# with open('file.lol', 'r') as file:
-#     sampleCode  = file.read()
-# sample = tokenized(sampleCode)
-# print(sample)
-# result = []
 
-# for token in sample: 
-#     result.append(classify_token(sample))
+
+result = []
+
+for line in tokenized_toks: 
+    for word in line: 
+        result.append(classify_token(word))
+
+for i in result: 
+    print(i)
+
+
