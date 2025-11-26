@@ -1,83 +1,18 @@
-import os
 import re
 
-# def isTroof(tok):
-#     if tok == "WIN" or tok == "FAIL":
-#         return True
-#     else:
-#         return False
+# https://www.geeksforgeeks.org/python/python-re-compile/
+# pattern matching
+identifier_reg = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
+numbr_reg = re.compile(r"-?\d+")
+numbar_reg = re.compile(r"^-?\d+\.\d+$")
+string_reg = re.compile(r'^".*"$')
+comment_reg = re.compile(r'^>.*<$')
 
-# def isNumbr(tok):
-#     regex = r"-?\d+"
-#     return re.search(regex, tok)
 
-# def isNumbar(tok):
-#     regex = r"-?\d+$"
-#     return re.search(regex, tok)
-
-# def isYarn(tok):
-#     regex = r"^-?\d+\.\d+$"
-#     return re.search(regex, tok)
-
-# def isType(tok):
-#     types = ["NOOB", "NUMBR", "NUMBAR", "YARN", "TROOF"]
-#     if tok in types:
-#         return True
-#     else:
-#         return False
-
-# def isIdentifier(tok):
-#     regex = r"^[A-Za-z][A-Za-z0-9_]*"
-#     return re.search(regex, tok)
-
-# def isCodeDelimiter(tok): 
-#     delimiter = ['HAI', "KTHXBYE"]
-#     if tok in delimiter: 
-#         return (tok, "Code Delimiter")
-
-# def isVariableDelimiter(tok): 
-#     delimiter = ['WAZZUP', 'BUHBYE']
-#     if tok in delimiter: 
-#         return (tok, "Variable Delimiter")
-
-# def isCommentDelimiter(tok): 
-#     delimiter = ['BTW', 'OBTW', 'TLDR']
-#     if tok in delimiter: 
-#         return (tok, "Comment Delimiter")
-    
-# def isStatementDelimiter(tok): 
-#     delimiter = ['O RLY?', 'OIC', 'WTF?']
-#     if tok in delimiter: 
-#         return (tok, "Statement Delimiter")
-    
-# def isLoopDelimiter(tok): 
-#     delimiter = ['IM IN YR', 'IM OUTTA YR']
-#     if tok in delimiter: 
-#         return (tok, "Loop Delimiter")
-
-# def isFunctionDelimiter(tok): 
-#     delimiter = ['HOW IZ I', 'IF U SAY SO']
-#     if tok in delimiter: 
-#         return (tok, "Function Delimiter")
-
-# def isComparisonOperator(tok): 
-#     operator = ['BOTH SAEM', 'DIFFRINT']
-#     if tok in operator: 
-#         return(tok, "Comparison Operator")
-    
-# def isArithmeticOperator(tok): 
-#     operator = ['SUM OF', 'DIFF OF', 'PRODUKT OF', 'QUOSHUNT OF', 'MOD OF', 'BIGGR OF', 'SMALLR OF', 'UPPN', 'NERFIN']
-#     if tok in operator: 
-#         return(tok, "Arithmetic Operator")
-    
-# def isBooleanOperator(tok): 
-#     operator = ['BOTH OF', 'EITHER OF', 'WON OF', 'NOT', 'ANY OF', 'ALL OF', 'SMOOSH']
-#     if tok in operator: 
-#         return(tok, "Boolean Operator")
-
+# accepts an array, returns the array with combined strings, and multiple-word tokens
 def tokenized(array):
 
-    # code that has OF attached to it
+    # keywords that has OF attached to it
     of_keys = [
         "SUM", "DIFF", "PRODUKT", "QUOSHUNT", "MOD", "BIGGR",
         "SMALLR", "BOTH", "EITHER", "WON", "ANY", "ALL"
@@ -163,7 +98,9 @@ def tokenized(array):
 
     for line in array: 
         make_strings(line)
+        make_BTW_comments(line)
     return array
+
 
 def make_strings(line):
     has_quotes = 0
@@ -173,27 +110,50 @@ def make_strings(line):
     for word in line: 
         if(word == '"' and start_index == -1): 
             has_quotes = 1
-            start_index = i + 1
+            start_index = i 
         elif(word == '"' and start_index != -1):
-            end_index = i 
+            end_index = i + 1 
         i+=1
  
     if(has_quotes == 1): 
         line[start_index:end_index] = [' '.join(line[start_index:end_index])]
-   
+        line.insert(start_index, '"')
+        line.insert(start_index+2, '"')
 
-def classify_token(tok): 
-    if tok == '\"':
-        return (tok, "string_delimiter")
-    elif tok == 'some string':
-        # Placeholder for recognizing any string literal (excluding delimiters)
-        return (tok, "string_literal")
-    elif tok == 'WIN':
+def make_BTW_comments(line):
+    isBTW = 0
+    start_index = -1; 
+    end_index = -1
+    i = 0
+    for word in line: 
+        if(word == "BTW" and start_index == -1): 
+            isBTW = 1
+            start_index = i + 1
+        elif(word == '\n' and start_index != -1):
+            end_index = i
+        i+=1
+ 
+    if(isBTW == 1): 
+        line[start_index:end_index] = [' '.join(line[start_index:end_index])]
+        line[start_index] = ">" + line[start_index]
+        # print(line[start_index])
+        line[start_index] = line[start_index] + "<"
+        
+
+# accepts a token, returns a tuple of token and its classfication
+def classify_token(tok):
+    if tok == "\"":
+        return (tok, "string_delimeter")
+    elif tok == 'WIN' or tok == "FAIL":
         return (tok, "troof_literal")
-    elif tok == 'FAIL':
-        return (tok, "troof_literal")
-    elif tok == 'NOOB':
+    elif tok in ["NOOB", "NUMBR", "NUMBAR", "YARN", "TROOF"]:
         return (tok, "type_literal")
+    # string literals (between "") ----------
+    elif string_reg.match(tok):
+        return (tok[2:-2], "string_literal")
+    elif comment_reg.match(tok):
+        return (tok[1:-1], "comment_literal")
+    # exact keywords ------------------------
     elif tok == 'HAI':
         return (tok, "start_code_delimiter")
     elif tok == 'KTHXBYE':
@@ -288,21 +248,51 @@ def classify_token(tok):
         return (tok, "function_call_keyword")
     elif tok == 'MKAY':
         return (tok, "end_of_assignment_keyword")
-    elif tok == 'varname':
-        # make function like isNumbr() or isNumbar() using regex probably
-        # Placeholder for recognizing any variable identifier
-        return (tok, "variable_identifier")
-    elif tok == '17.0':
-        # Placeholder for recognizing any number literal
+    elif tok == 'GTFO':
+        return (tok, "break_keyword")
+    elif tok == "FOUND YR":
+        return (tok, "return_keyword")
+    elif tok == "BTW":
+        return (tok, "singleline_comment_delimeter")
+    elif tok == "OBTW":
+        return (tok, "multiline_comment_delimeter")
+    # numbar and numbr literals ---------
+    elif numbar_reg.fullmatch(tok):
         return (tok, "numbar_literal")
-    elif tok == '\n':
-        return (tok, "linebreak")
-    elif tok == '+':
+    elif numbr_reg.fullmatch(tok):
+        return (tok, "numbr_literal")
+    # signs -----------------------------
+    elif tok == "+":
         return (tok, "print_concatenation_keyword")
     elif tok == '!':
         return (tok, "no_newline_suffix")
-    else:
-        return (tok, "UNKNOWN")
+    elif tok == '\n':
+        return (tok, "linebreak")
+    elif identifier_reg.match(tok):
+        return (tok, "variable_identifier")
+    
+    #default if doesn't enter anything --
+    return (tok, "UNKNOWN")
+
+# accepts file name, returns tokenized
+# def tokenize_file(filename):
+#     array = []
+#     with open(filename, "r") as file:
+#         for line in file:
+#             line = line.strip().replace('\t','')
+#             array.append(line.split(" "))
+    
+#     final = []
+#     for line in array:
+#         line_array = []
+#         for word in line:
+#             # split quotes and newlines
+#             word_split = re.split(r'("|\n)', word)
+#             line_array.extend(filter(None, word_split))
+#         final.append(line_array)
+    
+#     # Merge multi-word keywords and strings
+#     return tokenized(final)
 
 array = []
 file = open('file.lol', "r")
@@ -311,8 +301,8 @@ for line in file:
     array.append(line.split(" "))
 file.close()
 
-print(array)
-print()
+# print(array)
+# print()
 
 final = []
 pattern = r'(")'
@@ -332,11 +322,9 @@ for line in array:
     final.append(line_array)
 
 
-print(final)
-
+# print(final)
 
 tokenized_toks = tokenized(final)
-
 
 
 result = []
