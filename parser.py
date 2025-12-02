@@ -1,6 +1,16 @@
 import sys
 import tkinter as tk
 from tkinter import simpledialog
+from main import tokens_main
+from main import console_print
+
+# Global Containers
+tokens = tokens_main             # should be set to list of (token_value, token_type) tuples
+current_index = 0
+current_token = None    # pointer
+current_line = 1        # lolcode line tracker
+symbol_table = {}       # name -> {"value": ..., "type": ...}
+functions = {}          # name -> {"parameters": ...}
 
 arith_toks = ["add_keyword", 
                 "subtract_keyword", 
@@ -43,14 +53,6 @@ expr_toks = ["add_keyword",
                     "concatenation_keyword"
                     ]
 
-# Global Containers
-tokens = []             # should be set to list of (token_value, token_type) tuples
-current_index = 0
-current_token = None    # pointer
-current_line = 1        # lolcode line tracker
-symbol_table = {}       # name -> {"value": ..., "type": ...}
-functions = {}          # name -> {"parameters": ...}
-
 """
 SYNTAX AND TOKEN HELPERS
 """
@@ -87,7 +89,7 @@ def last_tok():
 # Skips comments and whitespaces
 def skip_empty_lines():
     global current_token
-    while current_token is not None and (current_token[1] == "empty_line" or current_token[1] == "linebreak"):
+    while current_token is not None and (current_token[1] == "comment_literal" or current_token[1] == "linebreak"):
         next_tok()
 
 def if_linebreak():
@@ -95,13 +97,6 @@ def if_linebreak():
     if current_token is not None and current_token[1] == "linebreak":
         next_tok()
         skip_empty_lines()
-
-# Prints syntax errors
-def error(msg, line=None):
-    if line is None:
-        line = current_line
-    print(f"[SyntaxError] {msg} (line {line})")
-    sys.exit(1) # ends program
 
 # Return True if the next token is R
 def peek_assignment():
@@ -190,7 +185,7 @@ def program():
 
     # Expect start code delimiter HAI
     if current_token is None or current_token[1] != "start_code_delimiter":
-        error("Start code delimiter (HAI) not found", current_line)
+        console_print(f"[SyntaxError] Start code delimiter (HAI) not found, (line {current_line})")
 
     nodes.append(("START", current_token))
     next_tok()
@@ -211,7 +206,7 @@ def program():
             next_tok()
             if_linebreak()
         else:
-            error("End variable declaration delimiter (BUHBYE) not found", current_line)
+            console_print(f"[SyntaxError] End variable declaration delimiter (BUHBYE) not found, (line {current_line})")
 
     skip_empty_lines()
     # Optional function definitions
@@ -229,7 +224,7 @@ def program():
         nodes.append(("END", current_token))
         next_tok()
     else:
-        error("End code delimiter (KTHXBYE) not found", current_line)
+        console_print(f"[SyntaxError] End code delimiter (KTHXBYE) not found, (line {current_line})")
 
     return nodes
 
@@ -240,14 +235,14 @@ def var_declaration():
     global current_token
 
     if current_token is None or current_token[1] != "variable_declaration":
-        error("Expected variable declaration start 'I HAS A'", current_line)
+        console_print(f"[SyntaxError] Expected variable declaration start 'I HAS A', (line {current_line})")
     
     # consume 'I HAS A'
     next_tok()
 
     # Expect identifier
     if current_token is None or current_token[1] != "variable_identifier":
-        error("Expected variable identifier after 'I HAS A'", current_line)
+        console_print(f"[SyntaxError] Expected variable identifier after 'I HAS A', (line {current_line})")
     name = current_token[0]
     next_tok()
 
@@ -260,7 +255,7 @@ def var_declaration():
         next_tok()
 
         if current_token is None:
-            error("Expected a literal or expression after 'ITZ'", current_line)
+            console_print(f"[SyntaxError] Expected a literal or expression after 'ITZ', (line {current_line})")
 
         # Parse the expression
         value, _ = parse_expression()
@@ -285,7 +280,7 @@ def var_declaration_list():
 
         # Expect a variable declaration
         if current_token is None or current_token[1] != "variable_declaration":
-            error("Expected variable declaration start 'I HAS A'", current_line)
+            console_print(f"[SyntaxError] Expected variable declaration start 'I HAS A', (line {current_line})")
 
         node = var_declaration()
         update_symbol_table()  # semantic update
@@ -366,7 +361,7 @@ def statement():
     global current_token
 
     if current_token is None:
-        error("Unexpected EOF while parsing statement")
+        console_print(f"[SemanticError] Unexpected EOF while parsing statement, (line {current_line})")
 
     ttype = current_token[1]
 
@@ -410,21 +405,21 @@ def statement():
         return expr_stmt()
 
     # No valid statement start
-    error("Invalid statement start: " + str(current_token))
+    console_print(f"[SyntaxError] Invalid statement start: {current_token}, (line {current_line})")
 
 # variable declaration parser
 def var_decl():
     global current_token
 
     if current_token is None or current_token[1] != "variable_declaration":
-        error("Expected variable declaration start 'I HAS A'", current_line)
+        console_print(f"Expected variable declaration start 'I HAS A', (line {current_line})")
 
     # consume 'I HAS A'
     next_tok()
 
     # expect identifier
     if current_token is None or current_token[1] != "variable_identifier":
-        error("Expected variable identifier after 'I HAS A'", current_line)
+        console_print(f"[SyntaxError] Expected variable identifier after 'I HAS A', (line {current_line})")
     name = current_token[0]
     next_tok()
 
@@ -436,7 +431,7 @@ def var_decl():
         next_tok()  # consume ITZ
 
         if current_token is None:
-            error("Expected token after 'ITZ'", current_line)
+            console_print(f"[SyntaxError] Expected token after 'ITZ', (line {current_line})")
 
         # ITZ <expr>
         if current_token[1] in expr_toks or current_token[1] in arith_toks + bool_toks + comp_toks:
@@ -456,18 +451,18 @@ def var_decl():
         elif current_token[1] == "like_type_keyword":
             next_tok()  # consume LIEK
             if current_token is None or current_token[1] != "type_reference_keyword":
-                error("Expected 'A <identifier>' after 'LIEK'", current_line)
+                console_print(f"[SyntaxError] Expected 'A <identifier>' after 'LIEK', (line {current_line})")
             ref_name = current_token[0]
             next_tok()
             if ref_name not in symbol_table:
-                error(f"Referenced variable '{ref_name}' does not exist", current_line)
+                console_print(f"[SemanticError] Referenced variable '{ref_name}' does not exist, (line {current_line})")
             declared_type = symbol_table[ref_name]["type"]
             store_variable(name, None)
             symbol_table[name]["type"] = declared_type
             return ('VARIABLE', name, 'NOOB')
 
         else:
-            error("Invalid token after ITZ in variable declaration", current_line)
+            console_print(f"[SyntaxError] Invalid token after ITZ in variable declaration, (line {current_line})")
     else:
         # no ITZ → default NOOB
         store_variable(name, None)
@@ -479,25 +474,25 @@ def assignment():
 
     # Expect identifier
     if current_token is None or current_token[1] != "variable_identifier":
-        error("Expected variable identifier at start of assignment", current_line)
+        console_print(f"[SyntaxError] Expected variable identifier at start of assignment, (line {current_line})")
     name = current_token[0]
     next_tok()
 
     # Expect assignment operator 'R'
     if current_token is None or current_token[1] != "update_var_value":
-        error("Expected 'R' in assignment", current_line)
+        console_print(f"[SyntaxError] Expected 'R' in assignment, (line {current_line})")
     next_tok()
 
     # Expect expression
     if current_token is None:
-        error("Expected expression after 'R'", current_line)
+        console_print(f"Expected expression after 'R', (line {current_line})")
 
     # parse_expression() returns evaluated value and type
     value,_ = parse_expression()
 
     # Semantic check: variable must exist
     if name not in symbol_table:
-        error(f"Variable '{name}' not declared", current_line)
+        console_print(f"[SemanticError] Referenced variable '{name}' does not exist, (line {current_line})")
 
     # Update variable value and type in symbol table
     store_variable(name, value)
@@ -511,12 +506,11 @@ def print_stmt():
     global current_token
 
     if current_token is None or current_token[1] != "print_keyword":
-        error("Expected 'VISIBLE'", current_line)
-    next_tok()  # consume VISIBLE
+        console_print(f"[SyntaxError] Expected 'VISIBLE', (line {current_line})")
 
     # First expression
     if current_token is None:
-        error("Expected expression after 'VISIBLE'", current_line)
+        console_print(f"[SyntaxError] Expected expression after 'VISIBLE', (line {current_line})")
     value, _ = parse_expression()
     if value is None:
         value = ""  # empty if AN or nothing found
@@ -532,7 +526,7 @@ def print_stmt():
     }
 
     if current_token is not None and current_token[1] in expr_toks:
-        error(f"Syntax Error: missing + for string concatenation", current_line)
+        console_print(f"[SyntaxError] Missing + for string concatenation, (line {current_line})")
 
     while current_token is not None and current_token[1] in concat_tokens:
         next_tok()  # consume AN / concat token
@@ -550,9 +544,9 @@ def print_stmt():
         next_tok()
 
     if no_newline:
-        print(value, end="")
+        console_print(value, end="")
     else:
-        print(value)
+        console_print(value)
 
     return ("PRINT", value)
 
@@ -562,12 +556,12 @@ def input_stmt():
 
     # Expect GIMMEH
     if current_token is None or current_token[1] != "input_keyword":
-        error("Expected 'GIMMEH' for input statement", current_line)
+        console_print(f"[SyntaxError] Expected 'GIMMEH' for input statement, (line {current_line})")
     next_tok()
 
     # Expect identifier
     if current_token is None or current_token[1] != "variable_identifier":
-        error("Expected identifier after 'GIMMEH'", current_line)
+        console_print(f"[SyntaxError] Expected identifier after 'GIMMEH', (line {current_line})")
 
     varname = current_token[0]
     next_tok()
@@ -585,6 +579,8 @@ def input_stmt():
     # Store into symbol table
     store_variable(varname, user_value)
 
+    console_print(user_value)
+
     return ("INPUT", varname, user_value)
 
 # Switch statement parser
@@ -593,7 +589,7 @@ def switch_stmt(switch_value):
 
     # Expect WTF?
     if current_token is None or current_token[1] != "switch_keyword":
-        error("Expected 'WTF?' after expression", current_line)
+        console_print(f"[SyntaxError] Expected 'WTF?' after expression, (line {current_line})")
     next_tok()
     skip_empty_lines()
 
@@ -610,7 +606,7 @@ def switch_stmt(switch_value):
         if current_token is None or current_token[1] not in (
             "numbr_literal", "numbar_literal", "string_literal", "troof_literal"
         ):
-            error("Expected literal after OMG", current_line)
+            console_print(f"[SyntaxError] Expected literal after OMG, (line {current_line})")
 
         case_val, _ = parse_literal()
         skip_empty_lines()
@@ -674,7 +670,7 @@ def switch_stmt(switch_value):
 
     # Expect OIC
     if current_token is None or current_token[1] != "end_of_if_block_keyword":
-        error("Expected 'OIC' to close WTF? block", current_line)
+        console_print(f"[SyntaxError] Expected 'OIC' to close WTF? block, (line {current_line})")
 
     next_tok()
     skip_empty_lines()
@@ -687,13 +683,13 @@ def if_stmt(cond_value):
 
     # Expect 'O RLY?' keyword
     if current_token is None or current_token[1] != "if_keyword":
-        error("Expected 'O RLY?' after expression", current_line)
+        console_print(f"[SyntaxError] Expected 'O RLY?' after expression, (line {current_line})")
     next_tok()
     skip_empty_lines()
 
     # Expect 'YA RLY'
     if current_token is None or current_token[1] != "if_true_keyword":
-        error("Expected 'YA RLY' after 'O RLY?'", current_line)
+        console_print(f"[SyntaxError] Expected 'YA RLY' after 'O RLY?', (line {current_line})")
     next_tok()
     skip_empty_lines()
 
@@ -743,7 +739,7 @@ def if_stmt(cond_value):
 
     # Expect OIC
     if current_token is None or current_token[1] != "end_of_if_block_keyword":
-        error("Expected 'OIC' to close IF statement", current_line)
+        console_print(f"[SyntaxError] Expected 'OIC' to close IF statement, (line {current_line})")
     next_tok()
     skip_empty_lines()
 
@@ -768,7 +764,7 @@ def statement_list_until_if_branch():
         stmts.append(statement())
 
         # Skip linebreaks / empty lines between statements
-        while current_token is not None and current_token[1] in ("linebreak", "empty_line"):
+        while current_token is not None and current_token[1] in ("linebreak", "comment_literal"):
             next_tok()
     return stmts
 
@@ -781,10 +777,10 @@ def expr_stmt():
     cond_value = symbol_table["IT"].get("value", None)
 
     if cond_value is None:
-        error("Expected expression for expression-statement", current_line)
+        console_print(f"[SyntaxError] Expected expression for expression-statement, (line {current_line})")
 
     # Skip empty lines before potential IF
-    while current_token is not None and current_token[1] in ("linebreak", "empty_line"):
+    while current_token is not None and current_token[1] in ("linebreak", "comment_literal"):
         next_tok()
 
     # If O RLY? follows, delegate to if_stmt
@@ -802,7 +798,7 @@ def parse_expression():
     global current_token
 
     if current_token is None:
-        error("Unexpected EOF in expression", current_line)
+        console_print(f"[SemanticError] Unexpected EOF in expression, (line {current_line})")
 
     ttype = current_token[1]
 
@@ -818,7 +814,7 @@ def parse_expression():
     if ttype == "variable_identifier":
         name = current_token[0]
         if name not in symbol_table:
-            error(f"Variable '{name}' not declared", current_line)
+            console_print(f"[SemanticError] Referenced variable '{name}' does not exist, (line {current_line})")
         value = symbol_table[name]["value"]
         expr_type = symbol_table[name].get("type", None)
         store_variable("IT", value)
@@ -844,14 +840,14 @@ def parse_expression():
         while True:
             # stop if MKAY is next
             if current_token is None:
-                error("Expected MKAY to end multi-operand logical check", current_line)
+                console_print(f"[SyntaxError] Expected MKAY to end multi-operand logical check, (line {current_line})")
             if current_token[1] == "end_of_assignment_keyword":  # MKAY
                 break
 
             # parse next operand
             value, _ = parse_expression()
             if value is None:
-                error("Expected operand in multi-operand logical check", current_line)
+                console_print(f"[SyntaxError] Expected operand in multi-operand logical check, (line {current_line})")
 
             results.append(True if value == "WIN" else False)
 
@@ -883,11 +879,11 @@ def parse_expression():
         # TYPECAST: MAEK A <expr> <type_literal>
         if op == "typecast_keyword":
             if current_token is None or current_token[1] != "typecast_prefix":
-                error("Expected 'A' after MAEK", current_line)
+                console_print(f"[SyntaxError] Expected 'A' after MAEK, (line {current_line})")
             next_tok()
             left, _ = parse_expression()
             if current_token is None or current_token[1] != "type_literal":
-                error("Expected type literal after expression in MAEK cast", current_line)
+                console_print(f"[SyntaxError] Expected type literal after expression in MAEK cast, (line {current_line})")
             target_type = current_token[0]
             next_tok()
             try:
@@ -907,14 +903,14 @@ def parse_expression():
                     store_variable("IT", None) 
                     return None, "NOOB"
             except:
-                error(f"Cannot cast '{left}' to {target_type}", current_line)
+                console_print(f"[SemanticError] Cannot cast '{left}' to {target_type}, (line {current_line})")
 
         # TYPECAST: <type_literal> OF <expr>
         if op == "type_convert_keyword":
             target_type = current_token[0]
             next_tok()
             if current_token is None or current_token[1] != "of_keyword":
-                error("Expected 'OF' in full typecast", current_line)
+                console_print(f"[SyntaxError] Expected 'OF' in full typecast, (line {current_line})")
             next_tok()
             left, _ = parse_expression()
             try:
@@ -934,7 +930,7 @@ def parse_expression():
                     store_variable("IT", None) 
                     return None, "NOOB"
             except:
-                error(f"Cannot cast '{left}' to {target_type}", current_line)
+                console_print(f"[SemanticError] Cannot cast '{left}' to {target_type}, (line {current_line})")
 
         # Binary operations
         left, left_type = parse_expression()
@@ -947,7 +943,7 @@ def parse_expression():
             next_tok()
         right, _ = parse_expression()
         if right is None:
-            error(f"Missing right-hand operand for {op}", current_line)
+            console_print(f"[SemanticError] Missing right-hand operand for {op}, (line {current_line})")
 
         if left == "WIN":
                 left = True
@@ -1004,14 +1000,14 @@ def parse_expression():
         store_variable("IT", left) 
         return left, left_type
 
-    error(f"Unknown expression start: {current_token}")
+    console_print(f"[SyntaxError] Unknown expression start: {current_token}, (line {current_line})")
 
 # Literals Parser
 def parse_literal():
     global current_token
 
     if current_token is None:
-        error("Expected literal, found EOF", current_line)
+        console_print(f"[SyntaxError] Expected literal, (line {current_line})")
 
     ttype = current_token[1]
     value = None
@@ -1020,11 +1016,11 @@ def parse_literal():
     if ttype == "string_delimiter":
         next_tok()  # consume opening "
         if current_token is None or current_token[1] != "string_literal":
-            error("Expected string literal after opening quote", current_line)
+            console_print(f"[SyntaxError] Expected string literal after opening quote, (line {current_line})")
         value = current_token[0]
         next_tok()  # consume string literal
         if current_token is None or current_token[1] != "string_delimiter":
-            error("Expected closing quote for string literal", current_line)
+            console_print(f"[SyntaxError] Expected closing quote for string literal, (line {current_line})")
         next_tok()  # consume closing "
         store_variable("IT", value) 
         return value, "YARN"
@@ -1055,31 +1051,31 @@ def parse_literal():
         return "NOOB", "NOOB"
 
     else:
-        error(f"Unknown literal start: {current_token}", current_line)
+        console_print(f"[SyntaxError] Unknown literal start: {current_token}, (line {current_line})")
 
 def parse_full_typecast():
     global current_token
 
     # Expect identifier
     if current_token is None or current_token[1] != "variable_identifier":
-        error("Expected variable identifier before 'IS NOW A'", current_line)
+        console_print(f"[SyntaxError] Expected variable identifier before 'IS NOW A', (line {current_line})")
 
     varname = current_token[0]
 
     if varname not in symbol_table:
-        error(f"Variable '{varname}' not declared", current_line)
+        console_print(f"[SemanticError] Referenced variable '{varname}' does not exist, (line {current_line})")
 
     next_tok()  # consume identifier
 
     # Expect IS NOW A
     if current_token is None or current_token[1] != "type_convert_keyword":
-        error("Expected 'IS NOW A' keyword in full typecast", current_line)
+        console_print(f"[SyntaxError] Expected 'IS NOW A' keyword in full typecast, (line {current_line})")
 
     next_tok()  # consume IS NOW A
 
     # Expect type literal
     if current_token is None or current_token[1] != "type_literal":
-        error("Expected type literal after 'IS NOW A'", current_line)
+        console_print(f"[SyntaxError] Expected type literal after 'IS NOW A', (line {current_line})")
 
     new_type = current_token[0]  # NUMBR, NUMBAR, TROOF, YARN
     next_tok()
@@ -1093,14 +1089,16 @@ def parse_full_typecast():
         elif new_type == "NUMBAR":
             new_value = float(old_value)
         elif new_type == "TROOF":
-            # LOLCODE truthiness: NOOB is false; others based on Python truthiness
-            new_value = bool(old_value)
+            if old_value != "NOOB":
+                new_value = "WIN"
+            else:
+                new_value = "FAIL"
         elif new_type == "YARN":
             new_value = str(old_value)
         else:
-            error(f"Unknown type '{new_type}' in full typecast", current_line)
+            console_print(f"[SemanticError] Unknown type '{new_type}' in full typecast", current_line)
     except Exception:
-        error(f"Cannot cast '{old_value}' to {new_type}", current_line)
+        console_print(f"[SemanticError] Cannot cast '{old_value}' to {new_type}, (line {current_line})")
 
     # Store value
     symbol_table[varname]["value"] = new_value
@@ -1115,17 +1113,17 @@ def loop_stmt():
 
     # Expect IM IN YR
     if current_token is None or current_token[1] != "initialize_loop_keyword":
-        error("Expected 'IM IN YR' for loop statement", current_line)
+        console_print(f"[SyntaxError] Expected 'IM IN YR' for loop statement, (line {current_line})")
     next_tok()
 
     # Expect <identifier>
     if current_token is None or current_token[1] != "variable_identifier":
-        error("Expected identifier after 'IM IN YR'", current_line)
+        console_print(f"[SyntaxError] Expected identifier after 'IM IN YR', (line {current_line})")
     next_tok()
 
     # Expect UPPIN/NERFIN
     if current_token is None or current_token[1] not in ("increment_keyword", "decrement_keyword"):
-        error("Expected 'UPPIN' or 'NERFIN' after loop identifier", current_line)
+        console_print(f"[SyntaxError] Expected 'UPPIN' or 'NERFIN' after loop identifier, (line {current_line})")
     
     if current_token[1] == "increment_keyword":
         asc = True
@@ -1135,19 +1133,19 @@ def loop_stmt():
 
     # Expect YR
     if current_token is None or current_token[1] != "separator_keyword":
-        error("Expected 'YR' after 'UPPIN'/NERFIN", current_line)
+        console_print(f"[SyntaxError] Expected 'YR' after 'UPPIN'/NERFIN, (line {current_line})")
     next_tok()
 
     # Expect <identifier>
     if current_token is None or current_token[1] != "variable_identifier":
-        error("Expected identifier after 'YR", current_line)
+        console_print(f"[SyntaxError] Expected identifier after 'YR', (line {current_line})")
 
     varname = current_token[0]
     next_tok()
 
     # Expect WILE/TIL
     if current_token is None or current_token[1] not in ("while_keyword", "until_keyword"):
-        error("Expected 'WILE' or 'TIL' after loop identifier", current_line)
+        console_print(f"[SyntaxError] Expected 'WILE' or 'TIL' after loop identifier, (line {current_line})")
 
     
     if current_token[1] == "while_keyword":
@@ -1220,13 +1218,12 @@ def loop_stmt():
     
     # Expect IM OUTTA YR
     if current_token is None or current_token[1] != "break_loop_keyword":
-        error("Expected 'IM OUTTA YR' to close loop block", current_line)
+        console_print(f"[SyntaxError] Expected 'IM OUTTA YR' to close loop block, (line {current_line})")
     next_tok()
 
     # Expect <identifier>
     if current_token is None or current_token[1] != "variable_identifier":
-        error("Expected loop identifier to close loop block", current_line)
-    next_tok()
+        console_print(f"[SyntaxError] Expected loop identifier to close loop block, (line {current_line})")
     skip_empty_lines()
 
     return stmts
@@ -1245,12 +1242,12 @@ def function_def():
 
     # Expect HOW IZ I
     if current_token is None or current_token[1] != "define_function_keyword":
-        error("Expected 'HOW IZ I' for loop statement", current_line)
+        console_print(f"[SyntaxError] Expected 'HOW IZ I' for loop statement, (line {current_line})")
     next_tok()
     
     # Expect <identifier>
     if current_token is None or current_token[1] != "variable_identifier":
-        error("Expected function identifier to close loop block", current_line)
+        console_print(f"[SyntaxError] Expected function identifier to close loop block, (line {current_line})")
     func_name = current_token[0]
     functions[func_name] = {"parameters": []}
     func[func_name] = {"parameters": []}
@@ -1258,12 +1255,12 @@ def function_def():
 
     # Expect YR
     if current_token is None or current_token[1] != "separator_keyword":
-        error("Expected 'YR' after function name", current_line)
+        console_print(f"[SyntaxError] Expected 'YR' after function name, (line {current_line})")
     next_tok()
     
     # Expect <identifier>
     if current_token is None or current_token[1] != "variable_identifier":
-        error("Expected parameter identifier after YR", current_line)
+        console_print(f"[SyntaxError] Expected parameter identifier after YR, (line {current_line})")
 
     while True:
         functions[func_name]["parameters"].append(current_token[0])
@@ -1276,16 +1273,16 @@ def function_def():
             next_tok()
             # Expect YR
             if current_token is None or current_token[1] != "separator_keyword":
-                error("Expected 'YR' after 'AN'", current_line)
+                console_print(f"[SyntaxError] Expected 'YR' after 'AN', (line {current_line})")
             next_tok()
             # Expect <identifier>
             if current_token is None or current_token[1] != "variable_identifier":
-                error("Expected parameter identifier after YR", current_line)
+                console_print(f"[SyntaxError] Expected parameter identifier after YR, (line {current_line})")
     skip_empty_lines()
 
     while current_token is not None and current_token[1] != "function_end_keyword":
         if current_token[1] == "var_declaration_start":
-            error("Expected 'IF U SAY SO' to close function block", current_line)
+            console_print(f"[SyntaxError] Expected 'IF U SAY SO' to close function block, (line {current_line})")
         next_tok()
         skip_empty_lines()
     
@@ -1303,19 +1300,19 @@ def function_call():
 
     # Expect I IZ
     if current_token is None or current_token[1] != "function_call_keyword":
-        error("Expected 'I IZ' for loop statement", current_line)
+        console_print(f"[SyntaxError] Expected 'I IZ' for loop statement, (line {current_line})")
     next_tok()
 
     temp_line = current_line
     # Expect <identifier>
     if current_token is None or current_token[1] != "variable_identifier":
-        error("Expected function identifier to close loop block", current_line)
+        console_print(f"[SyntaxError] Expected function identifier to close loop block, (line {current_line})")
     func_name = current_token[0]
     next_tok()
 
     # Expect YR
     if current_token is None or current_token[1] != "separator_keyword":
-        error("Expected 'YR' after function name", current_line)
+        console_print(f"[SyntaxError] Expected 'YR' after function name, (line {current_line})")
     next_tok()
 
     while True:
@@ -1328,11 +1325,11 @@ def function_call():
         next_tok() #consume AN
         # Expect YR
         if current_token is None or current_token[1] != "separator_keyword":
-            error("Expected 'YR' after 'AN'", current_line)
+            console_print(f"[SyntaxError] Expected 'YR' after 'AN', (line {current_line})")
         next_tok()
         # Expect <identifier>
         if current_token is None or current_token[1] != "variable_identifier":
-            error("Expected parameter identifier after YR", current_line)
+            console_print(f"[SyntaxError] Expected parameter identifier after YR, (line {current_line})")
     ref = current_index
 
     while True:
@@ -1341,7 +1338,7 @@ def function_call():
             break
 
         if current_index == 0:
-            error("Function undefined", temp_line)
+            console_print(f"[SemanticError] Referenced function '{func_name}' does not exist, (line {current_line})")
     
     next_tok()
     next_tok() # consume 'YR'
@@ -1351,10 +1348,10 @@ def function_call():
     para_count = len(functions[func_name]["parameters"])
 
     if para_count < len(para):
-        error(f"{func_name} takes {para_count} positional arguments but {len(para)} were given", current_line)  
+        console_print(f"[SemanticError] {func_name} takes {para_count} positional arguments but {len(para)} were given, (line {current_line})")  
 
     if para_count > len(para):
-        error(f"{func_name} missing {para_count-len(para)} required positional arguments", current_line)    
+        console_print(f"[SemanticError] {func_name} missing {para_count-len(para)} required positional arguments, (line {current_line})")    
 
     while True:
         if i == para_count:
@@ -1390,127 +1387,6 @@ def function_call():
 def return_stmt():
     # Expect I IZ
     if current_token is None or current_token[1] != "return_keyword":
-        error("Expected 'I IZ' for loop statement", current_line)
+        console_print(f"[SyntaxError] Expected 'I IZ' for loop statement, (line {current_line})")
     next_tok()
     return parse_expression()
-
-
-
-# Test
-tokens = [
-    ("HAI", "start_code_delimiter"),
-    ("\n", "linebreak"),
-    ("", "empty_line"),
-    ("WAZZUP", "var_declaration_start"),
-    ("\n", "linebreak"),
-    ("I HAS A", "variable_declaration"),
-    ("name", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("I HAS A", "variable_declaration"),
-    ("num1", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("I HAS A", "variable_declaration"),
-    ("num2", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("BUHBYE", "var_declaration_end"),
-    ("    ", "empty_line"),
-    ("HOW IZ I", "define_function_keyword"),
-    ("addNum", "variable_identifier"),
-    ("YR", "separator_keyword"),
-    ("x", "variable_identifier"),
-    ("AN", "operator_delimiter"),
-    ("YR", "separator_keyword"),
-    ("y", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("FOUND YR", "return_keyword"),
-    ("SUM OF", "add_keyword"),
-    ("x", "variable_identifier"),
-    ("AN", "operator_delimiter"),
-    ("y", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("IF U SAY SO", "function_end_keyword"),
-    ("\n", "linebreak"),
-    ("", "empty_line"),
-    ("HOW IZ I", "define_function_keyword"),
-    ("printName", "variable_identifier"),
-    ("YR", "separator_keyword"),
-    ("person", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("VISIBLE", "print_keyword"),
-    ("\"", "string_delimiter"),
-    ("Hello, ", "string_literal"),
-    ("\"", "string_delimiter"),
-    ("+", "print_concatenation_keyword"),
-    ("person", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("GTFO", "break_keyword"),
-    ("\n", "linebreak"),
-    ("IF U SAY SO", "function_end_keyword"),
-    ("\n", "linebreak"),
-    ("", "empty_line"),
-    ("HOW IZ I", "define_function_keyword"),
-    ("printNum", "variable_identifier"),
-    ("YR", "separator_keyword"),
-    ("x", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("FOUND YR", "return_keyword"),
-    ("x", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("IF U SAY SO", "function_end_keyword"),
-    ("\n", "linebreak"),
-    ("", "empty_line"),
-    ("GIMMEH", "input_keyword"),
-    ("num1", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("GIMMEH", "input_keyword"),
-    ("num2", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("", "empty_line"),
-    ("I IZ", "function_call_keyword"),
-    ("addNum", "variable_identifier"),
-    ("YR", "separator_keyword"),
-    ("num1", "variable_identifier"),
-    ("AN", "operator_delimiter"),
-    ("YR", "separator_keyword"),
-    ("num2", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("VISIBLE", "print_keyword"),
-    ("IT", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("", "empty_line"),
-    ("GIMMEH", "input_keyword"),
-    ("name", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("I IZ", "function_call_keyword"),
-    ("printName", "variable_identifier"),
-    ("YR", "separator_keyword"),
-    ("name", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("VISIBLE", "print_keyword"),
-    ("IT", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("", "empty_line"),
-    ("I IZ", "function_call_keyword"),
-    ("printNum", "variable_identifier"),
-    ("YR", "separator_keyword"),
-    ("SUM OF", "add_keyword"),
-    ("x", "variable_identifier"),
-    ("AN", "operator_delimiter"),
-    ("2", "numbr_literal"),
-    ("\n", "linebreak"),
-    ("VISIBLE", "print_keyword"),
-    ("IT", "variable_identifier"),
-    ("\n", "linebreak"),
-    ("", "empty_line"),
-    ("KTHXBYE", "end_code_delimiter"),
-    ("\n", "linebreak"),
-    ("", "empty_line")
-]
-
-# Run parser
-parsed = program()
-
-print(parsed)
-# And print the symbol table for semantic results
-print("\nSymbol table:")
-print(symbol_table)
