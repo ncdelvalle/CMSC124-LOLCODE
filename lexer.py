@@ -35,25 +35,21 @@ def tokenized(array):
                     b = tok.pop(i+1)
                     tok[i] = f"{tok[i]} {a} {b}"
                     continue
-
                 if tok[i] == "IS" and tok[i+1] == "NOW" and tok[i+2] == "A":
                     a = tok.pop(i+1)
                     b = tok.pop(i+1)
                     tok[i] = f"{tok[i]} {a} {b}"
                     continue
-
                 if tok[i] == "HOW" and tok[i+1] == "IZ" and tok[i+2] == "I":
                     a = tok.pop(i+1)
                     b = tok.pop(i+1)
                     tok[i] = f"{tok[i]} {a} {b}"
                     continue
-
                 if tok[i] == "IM" and tok[i+1] == "IN" and tok[i+2] == "YR":
                     a = tok.pop(i+1)
                     b = tok.pop(i+1)
                     tok[i] = f"{tok[i]} {a} {b}"
                     continue
-
                 if tok[i] == "IM" and tok[i+1] == "OUTTA" and tok[i+2] == "YR":
                     a = tok.pop(i+1)
                     b = tok.pop(i+1)
@@ -65,22 +61,18 @@ def tokenized(array):
                     tok.pop(i+1)
                     tok[i] = f"{tok[i]} OF"
                     continue
-
                 if tok[i] == "BOTH" and tok[i+1] == "SAEM":
                     tok.pop(i+1)
                     tok[i] = "BOTH SAEM"
                     continue
-
                 if tok[i] == "O" and tok[i+1] == "RLY?":
                     tok.pop(i+1)
                     tok[i] = "O RLY?"
                     continue
-                
                 if tok[i] == "YA" and tok[i+1] == "RLY":
                     tok.pop(i+1)
                     tok[i] = "YA RLY"
                     continue
-
                 if tok[i] == "NO" and tok[i+1] == "WAI":
                     tok.pop(i+1)
                     tok[i] = "NO WAI"
@@ -89,15 +81,9 @@ def tokenized(array):
                     tok.pop(i+1)
                     tok[i] = "FOUND YR"
                     continue
-
                 if tok[i] == "I" and tok[i+1] == "IZ":
                     tok.pop(i+1)
                     tok[i] = "I IZ"
-                    continue
-
-                if tok[i] == "AN" and tok[i+1] == "YR":
-                    tok.pop(i+1)
-                    tok[i] = "AN YR"
                     continue
             i += 1
 
@@ -298,8 +284,6 @@ def code_to_tuples(codeText):
     for line in lines: 
         line = re.sub(r'\t', r'', line)
         array.append(line.split(" "))
-
-
 
     pattern = r'(")'
     pattern2 = r'(\n)'
