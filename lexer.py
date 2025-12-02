@@ -281,21 +281,38 @@ def code_to_tuples(codeText):
     # Split code into lines, keeping newlines
     lines = codeText.splitlines(True)
 
-    for line in lines:
+    array = []
+    for line in lines: 
+        line = re.sub(r'\t', r'', line)
+        array.append(line.split(" "))
+
+
+
+    pattern = r'(")'
+    pattern2 = r'(\n)'
+    for line in array: 
         line_array = []
-        tokens = re.findall(r'"[^"]*"|\S+|\n', line)
-
-        for token in tokens:
-            line_array.append(token)
-
+        for word in line: 
+            if re.search('"', word): 
+                token = re.split(pattern, word)
+                line_array.extend(token)
+            elif re.search("^.+\n$", word): 
+                token = re.split(pattern2, word)
+                line_array.extend(token)
+            else: 
+                line_array.append(word)
+        line_array = list(filter(None, line_array))
         final.append(line_array)
-
+    
     # Pass tokenized lines to your existing classification function
     tokenized_toks = tokenized(final)  # assuming tokenized() exists
+
+
 
     result = []
     for line in tokenized_toks:
         for word in line:
             result.append(classify_token(word))  # assuming classify_token() exists
 
+ 
     return result
