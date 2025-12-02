@@ -166,6 +166,8 @@ def classify_token(tok):
         return (tok, "variable_declaration")
     elif tok == 'ITZ':
         return (tok, "variable_assignment")
+    elif tok == 'NOT':
+        return (tok, "not_keyword")
     elif tok == 'R':
         return (tok, "update_var_value")
     elif tok == 'AN':
