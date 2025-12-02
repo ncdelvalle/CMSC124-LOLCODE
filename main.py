@@ -703,6 +703,7 @@ def if_stmt(cond_value):
 
     # Expect 'YA RLY'
     if current_token is None or current_token[1] != "if_true_keyword":
+        print(current_token)
         console_print(f"[SyntaxError] Expected 'YA RLY' after 'O RLY?', (line {current_line})")
     next_tok()
     skip_empty_lines()
@@ -1238,7 +1239,7 @@ def loop_stmt():
             while current_token is not None and current_token[1] not in ("while_keyword", "until_keyword"):
                 last_tok()
             next_tok()
-    
+
     # Expect IM OUTTA YR
     if current_token is None or current_token[1] != "break_loop_keyword":
         console_print(f"[SyntaxError] Expected 'IM OUTTA YR' to close loop block, (line {current_line})")
