@@ -183,6 +183,8 @@ def store_variable(name, value):
             t = "NOOB"
             value = "NOOB"
         symbol_table[name] = {"value": value, "type": t}
+    
+    refresh_symbol_table()
 
 """ PROGRAM SYNTAX """
 def program():
@@ -521,6 +523,7 @@ def print_stmt():
     # First expression
     if current_token is None:
         console_print(f"[SyntaxError] Expected expression after 'VISIBLE', (line {current_line})")
+    next_tok()
     value, _ = parse_expression()
     if value is None:
         value = ""  # empty if AN or nothing found
@@ -589,7 +592,8 @@ def input_stmt():
     # Store into symbol table
     store_variable(varname, user_value)
 
-    console_print(user_value)
+    console_print(f"{user_value}")
+
 
     return ("INPUT", varname, user_value)
 
@@ -889,6 +893,7 @@ def parse_expression():
         # TYPECAST: MAEK A <expr> <type_literal>
         if op == "typecast_keyword":
             if current_token is None or current_token[1] != "typecast_prefix":
+                print(current_token)
                 console_print(f"[SyntaxError] Expected 'A' after MAEK, (line {current_line})")
             next_tok()
             left, _ = parse_expression()
@@ -905,6 +910,10 @@ def parse_expression():
                     return float(left), "NUMBAR"
                 if target_type == "TROOF":
                     store_variable("IT", left)
+                    if bool(left):
+                        left = "WIN"
+                    else:
+                        left = "FAIL"
                     return left, "TROOF"
                 if target_type == "YARN": 
                     store_variable("IT", str(left))
@@ -932,6 +941,10 @@ def parse_expression():
                     return float(left), "NUMBAR"
                 if target_type == "TROOF": 
                     store_variable("IT", left)
+                    if bool(left):
+                        left = "WIN"
+                    else:
+                        left = "FAIL"
                     return left, "TROOF"
                 if target_type == "YARN": 
                     store_variable("IT", str(left))
@@ -1463,18 +1476,37 @@ def refresh_symbol_table():
     for child in symbolTable.get_children():
         symbolTable.delete(child)
 
-    # Read the CURRENT symbol_table dict
-    if symbol_table:
-        for name, info in symbol_table.items():
-            value = info.get("value", "")
-            symbolTable.insert("", "end", values=(name, value))
-    else:
+    if not symbol_table:
         symbolTable.insert("", "end", values=("NO SYMBOLS", ""))
+        return
+
+    # 1. Show IT first if it exists
+    if "IT" in symbol_table:
+        it_info = symbol_table["IT"]
+        it_value = it_info.get("value", "")
+        symbolTable.insert("", "end", values=("IT", it_value))
+
+    # 2. Show all other symbols after IT
+    for name, info in symbol_table.items():
+        if name == "IT":
+            continue  # skip, already displayed first
+        value = info.get("value", "")
+        symbolTable.insert("", "end", values=(name, value))
 
 
 def execute_code():
-    global tokens, symbol_table
+    global tokens, symbol_table, current_index, current_token, current_line, functions
     codeText = textEditor.get("1.0", tk.END)
+    
+    current_index = 0
+    current_token = None    # pointer
+    current_line = 1        # lolcode line tracker
+    symbol_table = {}       # name -> {"value": ..., "type": ...}
+    functions = {}          # name -> {"parameters": ...}
+
+    symbol_table = {}
+
+    refresh_symbol_table()
 
     tokens = lx.code_to_tuples(codeText)
 

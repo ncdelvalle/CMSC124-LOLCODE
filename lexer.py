@@ -203,7 +203,7 @@ def classify_token(tok):
     elif tok == 'MAEK':
         return (tok, "typecast_keyword")
     elif tok == 'A':
-        return (tok, "typecast_prefix_keyword")
+        return (tok, "typecast_prefix")
     elif tok == 'IS NOW A':
         return (tok, "type_convert_keyword")
     elif tok == 'VISIBLE':

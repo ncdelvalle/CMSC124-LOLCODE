@@ -511,6 +511,8 @@ def print_stmt():
     # First expression
     if current_token is None:
         console_print(f"[SyntaxError] Expected expression after 'VISIBLE', (line {current_line})")
+    
+    next_tok()
     value, _ = parse_expression()
     if value is None:
         value = ""  # empty if AN or nothing found
