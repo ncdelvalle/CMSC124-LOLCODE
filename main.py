@@ -560,7 +560,8 @@ def print_stmt():
         console_print(value, end="")
     else:
         console_print(value)
-
+    
+    skip_empty_lines()
     return ("PRINT", value)
 
 # Input statement parser
@@ -703,7 +704,6 @@ def if_stmt(cond_value):
 
     # Expect 'YA RLY'
     if current_token is None or current_token[1] != "if_true_keyword":
-        print(current_token)
         console_print(f"[SyntaxError] Expected 'YA RLY' after 'O RLY?', (line {current_line})")
     next_tok()
     skip_empty_lines()
@@ -894,7 +894,6 @@ def parse_expression():
         # TYPECAST: MAEK A <expr> <type_literal>
         if op == "typecast_keyword":
             if current_token is None or current_token[1] != "typecast_prefix":
-                print(current_token)
                 console_print(f"[SyntaxError] Expected 'A' after MAEK, (line {current_line})")
             next_tok()
             left, _ = parse_expression()
@@ -1248,6 +1247,8 @@ def loop_stmt():
     # Expect <identifier>
     if current_token is None or current_token[1] != "variable_identifier":
         console_print(f"[SyntaxError] Expected loop identifier to close loop block, (line {current_line})")
+    
+    next_tok()
     skip_empty_lines()
 
     return stmts
