@@ -253,7 +253,7 @@ def classify_token(tok):
         return (tok, "return_keyword")
     elif tok == "BTW":
         return (tok, "singleline_comment_delimiter")
-    elif tok == "OBTW":
+    elif tok == "OBTW" or tok == "TLDR":
         return (tok, "multiline_comment_delimiter")
     # numbar and numbr literals ---------
     elif numbar_reg.fullmatch(tok):
@@ -281,13 +281,42 @@ def code_to_tuples(codeText):
     lines = codeText.splitlines(True)
 
     array = []
+    inOBTW = 0
     for line in lines: 
         line = re.sub(r'\t', r'', line)
-        array.append(line.split(" "))
+        
+        # deals with multilines comments
+        if (line.strip() == "OBTW"):
+            inOBTW = 1
+            array.append(["OBTW"])
+            continue
+
+        elif (line.strip() == "TLDR"):
+            inOBTW = 0
+            array.append(["TLDR"])
+            continue
+
+        # basically if inOBTW sya, imamatch sya with comment_reg na between ><
+        elif (inOBTW == 1):
+            print(inOBTW)
+            if (line.strip() != ""):
+                # then it's appended like so without splitting it further
+                array.append([">" + line.strip() + "<"])
+            # print(line.strip())
+            # print(array)
+            continue
+
+        else:
+            array.append(line.split(" ")) # split if not commented 
 
     pattern = r'(")'
     pattern2 = r'(\n)'
     for line in array: 
+
+        if (comment_reg.match(line[0]) or line[0] == "OBTW" or line[0] == "TLDR"):
+            final.append(line)
+            continue
+
         line_array = []
         for word in line: 
             if re.search('"', word): 
