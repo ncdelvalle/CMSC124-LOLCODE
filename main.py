@@ -715,42 +715,52 @@ def if_stmt(cond_value):
         # Parse statements until next MEBBE, NO WAI, or OIC
         chosen_block = statement_list_until_if_branch()
         found_branch = True
+
+        while current_token is not None and current_token[1] != "end_of_if_block_keyword":
+            next_tok()
+            skip_empty_lines()
     else:
         # Skip tokens until next MEBBE / NO WAI / OIC
         while current_token is not None and current_token[1] not in ("else_if_keyword", "else_keyword", "end_of_if_block_keyword"):
             next_tok()
             skip_empty_lines()
 
-    # Handle optional MEBBE
-    while current_token is not None and current_token[1] in ("else_if_keyword", "else_keyword"):
-        next_tok()  # consume MEBBE
-        skip_empty_lines()
+        # Handle optional MEBBE
+        while current_token is not None and current_token[1] in ("else_if_keyword", "else_keyword"):
+            next_tok()  # consume MEBBE
+            skip_empty_lines()
 
-        m_val, _ = parse_expression()  # evaluate MEBBE condition
-        skip_empty_lines()
+            m_val, _ = parse_expression()  # evaluate MEBBE condition
+            skip_empty_lines()
 
-        if not found_branch and m_val == "WIN":
-            # parse statements for first true MEBBE
-            chosen_block = statement_list_until_if_branch()
-            found_branch = True
-        else:
-            # skip statements until next branch or OIC
-            while current_token is not None and current_token[1] not in ("else_if_keyword", "else_keyword", "end_of_if_block_keyword"):
-                next_tok()
-                skip_empty_lines()
+            if not found_branch and m_val == "WIN":
+                # parse statements for first true MEBBE
+                chosen_block = statement_list_until_if_branch()
+                found_branch = True
 
-    # Handle optional NO WAI
-    if current_token is not None and current_token[1] in ("else_keyword", "no_wai_keyword"):
-        next_tok()  # consume NO WAI
-        skip_empty_lines()
-        if not found_branch:
-            chosen_block = statement_list_until_if_branch()
-            found_branch = True
-        else:
-            # skip NO WAI statements
-            while current_token is not None and current_token[1] != "end_of_if_block_keyword":
-                next_tok()
-                skip_empty_lines()
+                while current_token is not None and current_token[1] != "end_of_if_block_keyword":
+                    next_tok()
+                    skip_empty_lines()
+                    
+                break
+            else:
+                # skip statements until next branch or OIC
+                while current_token is not None and current_token[1] not in ("else_if_keyword", "else_keyword", "end_of_if_block_keyword"):
+                    next_tok()
+                    skip_empty_lines()
+
+                # Handle optional NO WAI
+                if current_token is not None and current_token[1] in ("else_keyword", "no_wai_keyword"):
+                    next_tok()  # consume NO WAI
+                    skip_empty_lines()
+                    if not found_branch:
+                        chosen_block = statement_list_until_if_branch()
+                        found_branch = True
+                    else:
+                        # skip NO WAI statements
+                        while current_token is not None and current_token[1] != "end_of_if_block_keyword":
+                            next_tok()
+                            skip_empty_lines()
 
     # Expect OIC
     if current_token is None or current_token[1] != "end_of_if_block_keyword":
@@ -769,7 +779,7 @@ def statement_list_until_if_branch():
         ttype = current_token[1]
 
         # Stop at IF branch boundaries
-        if ttype in ("else_if_keyword", "else_if_keyword", "else_keyword", "no_wai_keyword", "end_of_if_block_keyword"):
+        if ttype in ("end_of_if_block_keyword", "else_keyword", "else_if_keyword"):
             break
 
         # Stop if token cannot start a statement
