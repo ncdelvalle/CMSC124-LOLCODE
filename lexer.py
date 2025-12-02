@@ -75,6 +75,11 @@ def tokenized(array):
                     tok.pop(i+1)
                     tok[i] = "O RLY?"
                     continue
+                
+                if tok[i] == "YA" and tok[i+1] == "RLY":
+                    tok.pop(i+1)
+                    tok[i] = "YA RLY"
+                    continue
 
                 if tok[i] == "NO" and tok[i+1] == "WAI":
                     tok.pop(i+1)
@@ -106,19 +111,25 @@ def make_strings(line):
     has_quotes = 0
     start_index = -1; 
     end_index = -1
+    quote_count = 0
     i = 0
     for word in line: 
         if(word == '"' and start_index == -1): 
             has_quotes = 1
-            start_index = i 
+            start_index = i
+            quote_count += 1 
+            print(line)
         elif(word == '"' and start_index != -1):
             end_index = i + 1 
+            quote_count += 1
         i+=1
- 
-    if(has_quotes == 1): 
-        line[start_index:end_index] = [' '.join(line[start_index:end_index])]
-        line.insert(start_index, '"')
-        line.insert(start_index+2, '"')
+
+        if(has_quotes == 1 and quote_count == 2): 
+            line[start_index:end_index] = [' '.join(line[start_index:end_index])]
+            line.insert(start_index, '"')
+            line.insert(start_index+2, '"')
+            start_index = -1
+            quote_count = 0
 
 def make_BTW_comments(line):
     isBTW = 0
@@ -309,6 +320,7 @@ def code_to_tuples(codeText):
     # Pass tokenized lines to your existing classification function
     tokenized_toks = tokenized(final)  # assuming tokenized() exists
 
+   
 
 
     result = []
