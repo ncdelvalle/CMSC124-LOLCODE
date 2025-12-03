@@ -99,7 +99,7 @@ def last_tok():
 # Skips comments and whitespaces
 def skip_empty_lines():
     global current_token
-    while current_token is not None and current_token[1] in ("comment_literal", "linebreak", "singleline_comment_delimiter"):
+    while current_token is not None and current_token[1] in ("comment_literal", "linebreak", "singleline_comment_delimiter", "multiline_comment_delimiter"):
         next_tok()
 
 def skip_linebreak():
@@ -236,6 +236,7 @@ def program():
         nodes.append(("END", current_token))
         next_tok()
     else:
+        print(current_token)
         console_print(f"[SyntaxError] End code delimiter (KTHXBYE) not found, (line {current_line})")
 
     return nodes
@@ -779,7 +780,6 @@ def if_stmt(cond_value):
 def if_helper():
     global current_token
     stmts = []
-    print(current_token)
     while current_token is not None:
         ttype = current_token[1]
 
@@ -810,7 +810,7 @@ def expr_stmt():
         console_print(f"[SyntaxError] Expected expression for expression-statement, (line {current_line})")
 
     # Skip empty lines before potential IF
-    while current_token is not None and current_token[1] in ("linebreak", "comment_literal", "singleline_comment_delimiter"):
+    while current_token is not None and current_token[1] in ("linebreak", "comment_literal", "singleline_comment_delimiter", "multiline_comment_delimiter"):
         next_tok()
 
     # If O RLY? follows, delegate to if_stmt
