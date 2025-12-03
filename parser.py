@@ -2,11 +2,11 @@ import sys
 import tkinter as tk
 from tkinter import simpledialog
 from main import tokens_main
-from main import console_print
+from main import console_print, refresh_symbol_table
 
 # Global Containers
 tokens = tokens_main             # should be set to list of (token_value, token_type) tuples
-current_index = 0
+ccurrent_index = 0
 current_token = None    # pointer
 current_line = 1        # lolcode line tracker
 symbol_table = {}       # name -> {"value": ..., "type": ...}
@@ -58,6 +58,7 @@ SYNTAX AND TOKEN HELPERS
 """
 
 # Checks next token
+
 def peek(offset=0):
     global tokens, current_index
     i = current_index + offset
@@ -89,7 +90,7 @@ def last_tok():
 # Skips comments and whitespaces
 def skip_empty_lines():
     global current_token
-    while current_token is not None and (current_token[1] == "comment_literal" or current_token[1] == "linebreak"):
+    while current_token is not None and current_token[1] in ("comment_literal", "linebreak", "singleline_comment_delimiter"):
         next_tok()
 
 def if_linebreak():
@@ -173,6 +174,8 @@ def store_variable(name, value):
             t = "NOOB"
             value = "NOOB"
         symbol_table[name] = {"value": value, "type": t}
+    
+    refresh_symbol_table()
 
 """ PROGRAM SYNTAX """
 def program():
@@ -511,7 +514,6 @@ def print_stmt():
     # First expression
     if current_token is None:
         console_print(f"[SyntaxError] Expected expression after 'VISIBLE', (line {current_line})")
-    
     next_tok()
     value, _ = parse_expression()
     if value is None:
@@ -549,7 +551,8 @@ def print_stmt():
         console_print(value, end="")
     else:
         console_print(value)
-
+    
+    skip_empty_lines()
     return ("PRINT", value)
 
 # Input statement parser
@@ -581,7 +584,8 @@ def input_stmt():
     # Store into symbol table
     store_variable(varname, user_value)
 
-    console_print(user_value)
+    console_print(f"{user_value}")
+
 
     return ("INPUT", varname, user_value)
 
@@ -617,7 +621,7 @@ def switch_stmt(switch_value):
             # Case matches
             block = []
             while current_token is not None and current_token[1] not in (
-                "switch_case_keyword", "switch_default_keyword", "end_of_if_block_keyword"
+                "switch_case_keyword", "switch_default_keyword", "close_if_block_keyword"
             ):
                 if current_token[1] == "break_keyword":
                     gtfo_triggered = True
@@ -631,14 +635,14 @@ def switch_stmt(switch_value):
             found_branch = True
         else:
             while current_token is not None and current_token[1] not in (
-                "switch_case_keyword", "switch_default_keyword", "end_of_if_block_keyword"
+                "switch_case_keyword", "switch_default_keyword", "close_if_block_keyword"
             ):
                 next_tok()
                 skip_empty_lines()
 
         # If GTFO triggered, break outer loop
         if gtfo_triggered:
-            while current_token is not None and current_token[1] != "end_of_if_block_keyword":
+            while current_token is not None and current_token[1] != "close_if_block_keyword":
                 next_tok()
                 skip_empty_lines()
             break
@@ -649,7 +653,7 @@ def switch_stmt(switch_value):
 
         if not found_branch:
             block = []
-            while current_token is not None and current_token[1] != "end_of_if_block_keyword":
+            while current_token is not None and current_token[1] != "close_if_block_keyword":
                 if current_token[1] == "break_keyword":
                     gtfo_triggered = True
                     next_tok()
@@ -661,7 +665,7 @@ def switch_stmt(switch_value):
 
         else:
             # Skip default block
-            while current_token is not None and current_token[1] != "end_of_if_block_keyword":
+            while current_token is not None and current_token[1] != "close_if_block_keyword":
                 if current_token[1] == "break_keyword":
                     gtfo_triggered = True
                     next_tok()
@@ -671,7 +675,7 @@ def switch_stmt(switch_value):
                 skip_empty_lines()
 
     # Expect OIC
-    if current_token is None or current_token[1] != "end_of_if_block_keyword":
+    if current_token is None or current_token[1] != "close_if_block_keyword":
         console_print(f"[SyntaxError] Expected 'OIC' to close WTF? block, (line {current_line})")
 
     next_tok()
@@ -702,45 +706,60 @@ def if_stmt(cond_value):
         # Parse statements until next MEBBE, NO WAI, or OIC
         chosen_block = statement_list_until_if_branch()
         found_branch = True
+
+        while current_token is not None and current_token[1] != "close_if_block_keyword":
+            next_tok()
+            skip_empty_lines()
     else:
         # Skip tokens until next MEBBE / NO WAI / OIC
-        while current_token is not None and current_token[1] not in ("else_if_keyword", "else_keyword", "end_of_if_block_keyword"):
+        while current_token is not None and current_token[1] not in ("else_if_keyword", "else_keyword", "close_if_block_keyword"):
             next_tok()
             skip_empty_lines()
 
-    # Handle optional MEBBE
-    while current_token is not None and current_token[1] in ("else_if_keyword", "else_keyword"):
-        next_tok()  # consume MEBBE
-        skip_empty_lines()
+        # Handle optional MEBBE
+        while current_token is not None and current_token[1] in ("else_if_keyword"):
+            next_tok()  # consume MEBBE
+            skip_empty_lines()
 
-        m_val, _ = parse_expression()  # evaluate MEBBE condition
-        skip_empty_lines()
+            m_val, _ = parse_expression()  # evaluate MEBBE condition
+            skip_empty_lines()
 
-        if not found_branch and m_val == "WIN":
-            # parse statements for first true MEBBE
-            chosen_block = statement_list_until_if_branch()
-            found_branch = True
-        else:
-            # skip statements until next branch or OIC
-            while current_token is not None and current_token[1] not in ("else_if_keyword", "else_keyword", "end_of_if_block_keyword"):
-                next_tok()
+            if not found_branch and m_val == "WIN":
+                # parse statements for first true MEBBE
+                chosen_block = statement_list_until_if_branch()
+                found_branch = True
+
+                while current_token is not None and current_token[1] != "close_if_block_keyword":
+                    next_tok()
+                    skip_empty_lines()
+
+                break
+            else:
+                # skip statements until next branch or OIC
+                while current_token is not None and current_token[1] not in ("else_if_keyword", "else_keyword", "close_if_block_keyword"):
+                    next_tok()
+                    skip_empty_lines()
+                
+                if current_token[1] in ('else_keyword', 'end_of_if_block_keyword'):
+                    break
+
+        if current_token[1] == "else_keyword":
+            # Handle optional NO WAI
+            if current_token is not None and current_token[1] in ("else_keyword"):
+                next_tok()  # consume NO WAI
                 skip_empty_lines()
-
-    # Handle optional NO WAI
-    if current_token is not None and current_token[1] in ("else_keyword", "no_wai_keyword"):
-        next_tok()  # consume NO WAI
-        skip_empty_lines()
-        if not found_branch:
-            chosen_block = statement_list_until_if_branch()
-            found_branch = True
-        else:
-            # skip NO WAI statements
-            while current_token is not None and current_token[1] != "end_of_if_block_keyword":
-                next_tok()
-                skip_empty_lines()
+                if not found_branch:
+                    chosen_block = statement_list_until_if_branch()
+                    found_branch = True
+                else:
+                    # skip NO WAI statements
+                    while current_token is not None and current_token[1] != "close_if_block_keyword":
+                        next_tok()
+                        skip_empty_lines()
 
     # Expect OIC
-    if current_token is None or current_token[1] != "end_of_if_block_keyword":
+    if current_token is None or current_token[1] != "close_if_block_keyword":
+        print(tokens[current_index - 2])
         console_print(f"[SyntaxError] Expected 'OIC' to close IF statement, (line {current_line})")
     next_tok()
     skip_empty_lines()
@@ -751,12 +770,12 @@ def if_stmt(cond_value):
 def statement_list_until_if_branch():
     global current_token
     stmts = []
-
+    print(current_token)
     while current_token is not None:
         ttype = current_token[1]
 
         # Stop at IF branch boundaries
-        if ttype in ("else_if_keyword", "else_if_keyword", "else_keyword", "no_wai_keyword", "end_of_if_block_keyword"):
+        if ttype in ("close_if_block_keyword", "else_keyword", "else_if_keyword"):
             break
 
         # Stop if token cannot start a statement
@@ -766,7 +785,7 @@ def statement_list_until_if_branch():
         stmts.append(statement())
 
         # Skip linebreaks / empty lines between statements
-        while current_token is not None and current_token[1] in ("linebreak", "comment_literal"):
+        while current_token is not None and current_token[1] in ("linebreak", "comment_literal", "singleline_comment_delimiter", "multiline_comment_delimiter"):
             next_tok()
     return stmts
 
@@ -782,7 +801,7 @@ def expr_stmt():
         console_print(f"[SyntaxError] Expected expression for expression-statement, (line {current_line})")
 
     # Skip empty lines before potential IF
-    while current_token is not None and current_token[1] in ("linebreak", "comment_literal"):
+    while current_token is not None and current_token[1] in ("linebreak", "comment_literal", "singleline_comment_delimiter"):
         next_tok()
 
     # If O RLY? follows, delegate to if_stmt
@@ -897,6 +916,10 @@ def parse_expression():
                     return float(left), "NUMBAR"
                 if target_type == "TROOF":
                     store_variable("IT", left)
+                    if bool(left):
+                        left = "WIN"
+                    else:
+                        left = "FAIL"
                     return left, "TROOF"
                 if target_type == "YARN": 
                     store_variable("IT", str(left))
@@ -924,6 +947,10 @@ def parse_expression():
                     return float(left), "NUMBAR"
                 if target_type == "TROOF": 
                     store_variable("IT", left)
+                    if bool(left):
+                        left = "WIN"
+                    else:
+                        left = "FAIL"
                     return left, "TROOF"
                 if target_type == "YARN": 
                     store_variable("IT", str(left))
@@ -1217,7 +1244,7 @@ def loop_stmt():
             while current_token is not None and current_token[1] not in ("while_keyword", "until_keyword"):
                 last_tok()
             next_tok()
-    
+
     # Expect IM OUTTA YR
     if current_token is None or current_token[1] != "break_loop_keyword":
         console_print(f"[SyntaxError] Expected 'IM OUTTA YR' to close loop block, (line {current_line})")
@@ -1226,6 +1253,8 @@ def loop_stmt():
     # Expect <identifier>
     if current_token is None or current_token[1] != "variable_identifier":
         console_print(f"[SyntaxError] Expected loop identifier to close loop block, (line {current_line})")
+    
+    next_tok()
     skip_empty_lines()
 
     return stmts

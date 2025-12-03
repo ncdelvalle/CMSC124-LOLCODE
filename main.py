@@ -1431,6 +1431,12 @@ def return_stmt():
     next_tok()
     return parse_expression()
 
+"""
+========================================================================
+GUI GUI GUI GUI GUI GUI GUI GUI GUI GUI GUI GUI GUI GUI GUI GUI GUI GUI
+========================================================================
+"""
+
 # Widgets
 dir = None
 fileExp = None
