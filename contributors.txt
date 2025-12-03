@@ -1,4 +1,4 @@
-alpha x 3 (124 lec assignment)
+alpha x3
 CMSC 124 - ST5L
 
 Nyll Elijah C. Del Valle
