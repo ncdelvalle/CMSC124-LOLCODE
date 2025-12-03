@@ -630,7 +630,7 @@ def switch_stmt(switch_value):
             # Case matches
             block = []
             while current_token is not None and current_token[1] not in (
-                "switch_case_keyword", "switch_default_keyword", "end_of_if_block_keyword"
+                "switch_case_keyword", "switch_default_keyword", "close_if_block_keyword"
             ):
                 if current_token[1] == "break_keyword":
                     gtfo_triggered = True
@@ -644,14 +644,14 @@ def switch_stmt(switch_value):
             found_branch = True
         else:
             while current_token is not None and current_token[1] not in (
-                "switch_case_keyword", "switch_default_keyword", "end_of_if_block_keyword"
+                "switch_case_keyword", "switch_default_keyword", "close_if_block_keyword"
             ):
                 next_tok()
                 skip_empty_lines()
 
         # If GTFO triggered, break outer loop
         if gtfo_triggered:
-            while current_token is not None and current_token[1] != "end_of_if_block_keyword":
+            while current_token is not None and current_token[1] != "close_if_block_keyword":
                 next_tok()
                 skip_empty_lines()
             break
@@ -662,7 +662,7 @@ def switch_stmt(switch_value):
 
         if not found_branch:
             block = []
-            while current_token is not None and current_token[1] != "end_of_if_block_keyword":
+            while current_token is not None and current_token[1] != "close_if_block_keyword":
                 if current_token[1] == "break_keyword":
                     gtfo_triggered = True
                     next_tok()
@@ -674,7 +674,7 @@ def switch_stmt(switch_value):
 
         else:
             # Skip default block
-            while current_token is not None and current_token[1] != "end_of_if_block_keyword":
+            while current_token is not None and current_token[1] != "close_if_block_keyword":
                 if current_token[1] == "break_keyword":
                     gtfo_triggered = True
                     next_tok()
@@ -684,7 +684,7 @@ def switch_stmt(switch_value):
                 skip_empty_lines()
 
     # Expect OIC
-    if current_token is None or current_token[1] != "end_of_if_block_keyword":
+    if current_token is None or current_token[1] != "close_if_block_keyword":
         console_print(f"[SyntaxError] Expected 'OIC' to close WTF? block, (line {current_line})")
 
     next_tok()
@@ -716,12 +716,12 @@ def if_stmt(cond_value):
         chosen_block = statement_list_until_if_branch()
         found_branch = True
 
-        while current_token is not None and current_token[1] != "end_of_if_block_keyword":
+        while current_token is not None and current_token[1] != "close_if_block_keyword":
             next_tok()
             skip_empty_lines()
     else:
         # Skip tokens until next MEBBE / NO WAI / OIC
-        while current_token is not None and current_token[1] not in ("else_if_keyword", "else_keyword", "end_of_if_block_keyword"):
+        while current_token is not None and current_token[1] not in ("else_if_keyword", "else_keyword", "close_if_block_keyword"):
             next_tok()
             skip_empty_lines()
 
@@ -738,14 +738,14 @@ def if_stmt(cond_value):
                 chosen_block = statement_list_until_if_branch()
                 found_branch = True
 
-                while current_token is not None and current_token[1] != "end_of_if_block_keyword":
+                while current_token is not None and current_token[1] != "close_if_block_keyword":
                     next_tok()
                     skip_empty_lines()
 
                 break
             else:
                 # skip statements until next branch or OIC
-                while current_token is not None and current_token[1] not in ("else_if_keyword", "else_keyword", "end_of_if_block_keyword"):
+                while current_token is not None and current_token[1] not in ("else_if_keyword", "else_keyword", "close_if_block_keyword"):
                     next_tok()
                     skip_empty_lines()
                 
@@ -762,12 +762,12 @@ def if_stmt(cond_value):
                     found_branch = True
                 else:
                     # skip NO WAI statements
-                    while current_token is not None and current_token[1] != "end_of_if_block_keyword":
+                    while current_token is not None and current_token[1] != "close_if_block_keyword":
                         next_tok()
                         skip_empty_lines()
 
     # Expect OIC
-    if current_token is None or current_token[1] != "end_of_if_block_keyword":
+    if current_token is None or current_token[1] != "close_if_block_keyword":
         print(tokens[current_index - 2])
         console_print(f"[SyntaxError] Expected 'OIC' to close IF statement, (line {current_line})")
     next_tok()
@@ -784,7 +784,7 @@ def statement_list_until_if_branch():
         ttype = current_token[1]
 
         # Stop at IF branch boundaries
-        if ttype in ("end_of_if_block_keyword", "else_keyword", "else_if_keyword"):
+        if ttype in ("close_if_block_keyword", "else_keyword", "else_if_keyword"):
             break
 
         # Stop if token cannot start a statement

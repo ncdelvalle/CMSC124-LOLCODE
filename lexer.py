@@ -218,7 +218,7 @@ def classify_token(tok):
     elif tok == 'NO WAI':
         return (tok, "else_keyword")
     elif tok == 'OIC':
-        return (tok, "end_of_if_block_keyword")
+        return (tok, "close_if_block_keyword")
     elif tok == 'WTF?':
         return (tok, "switch_keyword")
     elif tok == 'OMG':
