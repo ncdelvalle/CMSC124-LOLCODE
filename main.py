@@ -726,7 +726,7 @@ def if_stmt(cond_value):
             skip_empty_lines()
 
         # Handle optional MEBBE
-        while current_token is not None and current_token[1] in ("else_if_keyword", "else_keyword"):
+        while current_token is not None and current_token[1] in ("else_if_keyword"):
             next_tok()  # consume MEBBE
             skip_empty_lines()
 
@@ -741,29 +741,34 @@ def if_stmt(cond_value):
                 while current_token is not None and current_token[1] != "end_of_if_block_keyword":
                     next_tok()
                     skip_empty_lines()
-                    
+
                 break
             else:
                 # skip statements until next branch or OIC
                 while current_token is not None and current_token[1] not in ("else_if_keyword", "else_keyword", "end_of_if_block_keyword"):
                     next_tok()
                     skip_empty_lines()
+                
+                if current_token[1] in ('else_keyword', 'end_of_if_block_keyword'):
+                    break
 
-                # Handle optional NO WAI
-                if current_token is not None and current_token[1] in ("else_keyword", "no_wai_keyword"):
-                    next_tok()  # consume NO WAI
-                    skip_empty_lines()
-                    if not found_branch:
-                        chosen_block = statement_list_until_if_branch()
-                        found_branch = True
-                    else:
-                        # skip NO WAI statements
-                        while current_token is not None and current_token[1] != "end_of_if_block_keyword":
-                            next_tok()
-                            skip_empty_lines()
+        if current_token[1] == "else_keyword":
+            # Handle optional NO WAI
+            if current_token is not None and current_token[1] in ("else_keyword"):
+                next_tok()  # consume NO WAI
+                skip_empty_lines()
+                if not found_branch:
+                    chosen_block = statement_list_until_if_branch()
+                    found_branch = True
+                else:
+                    # skip NO WAI statements
+                    while current_token is not None and current_token[1] != "end_of_if_block_keyword":
+                        next_tok()
+                        skip_empty_lines()
 
     # Expect OIC
     if current_token is None or current_token[1] != "end_of_if_block_keyword":
+        print(tokens[current_index - 2])
         console_print(f"[SyntaxError] Expected 'OIC' to close IF statement, (line {current_line})")
     next_tok()
     skip_empty_lines()
@@ -774,7 +779,7 @@ def if_stmt(cond_value):
 def statement_list_until_if_branch():
     global current_token
     stmts = []
-
+    print(current_token)
     while current_token is not None:
         ttype = current_token[1]
 
@@ -789,7 +794,7 @@ def statement_list_until_if_branch():
         stmts.append(statement())
 
         # Skip linebreaks / empty lines between statements
-        while current_token is not None and current_token[1] in ("linebreak", "comment_literal", "singleline_comment_delimiter"):
+        while current_token is not None and current_token[1] in ("linebreak", "comment_literal", "singleline_comment_delimiter", "multiline_comment_delimiter"):
             next_tok()
     return stmts
 
